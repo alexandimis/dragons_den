@@ -1,5 +1,6 @@
 #!/bin/bash
 
-cd ../source
+cd ..
+mkdir bin
+cd source
 make
-mv play ../bin
