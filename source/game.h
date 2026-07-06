@@ -11,7 +11,7 @@
 #define NAME_SIZE 32 /* player name size */
 
 typedef enum {
-	GAME_OVER,  /* the dragon has been shot or the player has been eaten*/
+	GAME_OVER,  /* the dragon has been shot, the player has been eaten or the player exit the game*/
 	IN_PROGRESS /* the game is still ongoing */
 } game_status_t;
 
@@ -49,9 +49,9 @@ game_action_t in_game_menu();
 	
 #endif
 
-player_t playerInit();
-graph_t *createGame(int levelFactor, player_t *player);
-game_status_t gameLoop(graph_t *graph, player_t *player);
+player_t player_init();
+graph_t *create_game(int levelFactor, player_t *player);
+game_status_t game_loop(graph_t *graph, player_t *player);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,9 +59,9 @@ game_status_t gameLoop(graph_t *graph, player_t *player);
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-void mineActivation(graph_t *graph, player_t *player);
-void portalActivation(graph_t *graph, player_t *player);
-void foundArrow(graph_t *graph, player_t *player);
-void printIDs(vertex_t room);
-bool dragonCheck(vertex_t room);
-bool portalCheck(vertex_t room);
+void mine_activation(graph_t *graph, player_t *player);
+void portal_activation(graph_t *graph, player_t *player);
+void found_arrow(graph_t *graph, player_t *player);
+void print_ids(vertex_t room);
+bool dragon_check(vertex_t room);
+bool portal_check(vertex_t room);

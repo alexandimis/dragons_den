@@ -1,4 +1,4 @@
-CFLAGS = -Wall -g -fsanitize=address -D DEBUG
+CFLAGS = -Wall -g -fsanitize=address # -D DEBUG
 
 play: fileio.o game.o graph.o hw3.o random.o util.o
 	gcc $(CFLAGS) fileio.o game.o graph.o hw3.o random.o util.o -L. -lhw3 -o play

@@ -14,7 +14,7 @@ void memoryErrorCheck(void *ptr)
 }
 
 // If malloc fails the program exits
-void *safeMalloc(size_t size)
+void *safe_malloc(size_t size)
 {
     if (size == 0) { return NULL; }
 
@@ -24,7 +24,7 @@ void *safeMalloc(size_t size)
 }
 
 // If realloc fails the program exits
-void *safeRealloc(void *ptr, size_t size)
+void *safe_realloc(void *ptr, size_t size)
 {
     ptr = realloc(ptr, size);
 
@@ -35,7 +35,7 @@ void *safeRealloc(void *ptr, size_t size)
 }
 
 // Sets pointer to NULL after free
-void safeFree(void **ptr)
+void safe_free(void **ptr)
 {
     free(*ptr);
     *ptr = NULL;

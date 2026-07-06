@@ -157,10 +157,10 @@
  */
 
 #define FILE_EXISTS_MSG \
-"\nSavefile exists. Overwrite? (y/n) "
+"\nsave_file exists. Overwrite? (y/n) "
 
 #define CORRUPTED_ERROR_MSG \
-"\nCorrupted savefile.\n"
+"\nCorrupted save_file.\n"
 
 #define OPEN_ERROR_MSG \
 "\nCould not open file.\n"

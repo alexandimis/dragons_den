@@ -68,14 +68,16 @@ game_action_t in_game_menu()
 }
 
 // Initialize the player struct
-player_t playerInit()
+player_t player_init()
 {
+	// Name initialization
 	printf(NAME_REQUEST_MSG);
-
-	char name[NAME_SIZE] = "\0";
-	scanf(" %s", name);
+	char name[NAME_SIZE + 1];
+	fgets(name, NAME_SIZE, stdin);
+	name[strcspn(name, "\n")] = '\0'; // Replaces the \n from ENTER (if found) with a '\0' 
 	printf(GREETING_MSG, name);
 
+	// Player struct init
 	player_t player;
 	player.arrows = INIT_ARROWS;
 	strcpy(player.name, name);
@@ -85,7 +87,7 @@ player_t playerInit()
 }
 
 // Create the game graph and set the player's location
-graph_t *createGame(int levelFactor, player_t *player)
+graph_t *create_game(int levelFactor, player_t *player)
 {
 	graph_t *graph =  create_game_graph(levelFactor);
 	player->room = graph->vertices[0];
@@ -94,7 +96,7 @@ graph_t *createGame(int levelFactor, player_t *player)
 }
 
 // The game loop
-game_status_t gameLoop(graph_t *graph, player_t *player)
+game_status_t game_loop(graph_t *graph, player_t *player)
 {
 	while (1)
 	{
@@ -109,17 +111,17 @@ game_status_t gameLoop(graph_t *graph, player_t *player)
 		{
 			case MINE:
 				printf(TRIGGERED_MINE_MSG);
-				mineActivation(graph, player);
+				mine_activation(graph, player);
 				continue;
 			case PORTAL:
 				printf(TRIGGERED_PORTAL_MSG);
-				portalActivation(graph, player);
+				portal_activation(graph, player);
 				continue;
 			case DRAGON:
 				printf(ENCOUNTERED_DRAGON_MSG);
 				return GAME_OVER;
 			case ARROW:
-				foundArrow(graph, player);
+				found_arrow(graph, player);
 				printf(FOUND_ARROW_MSG, player->arrows);
 				break;
 			case EMPTY:
@@ -129,19 +131,19 @@ game_status_t gameLoop(graph_t *graph, player_t *player)
 		}
 
 		// Sort the edge_t list for the player room
-		player->room->edges = mergeSortList(player->room->edges);
+		player->room->edges = sort_list(player->room->edges);
 
-		printf(PASSAGE_INFO_MSG, getEdgeCount(*player->room));
-		printIDs(*player->room);
+		printf(PASSAGE_INFO_MSG, get_edge_count(*player->room));
+		print_ids(*player->room);
 
 		// Check if the dragon is nearby
-		if (dragonCheck(*player->room))
+		if (dragon_check(*player->room))
 		{
 			printf(DETECTED_DRAGON_MSG);
 		}
 
 		// Check if a portal is nearby
-		if (portalCheck(*player->room))
+		if (portal_check(*player->room))
 		{
 			printf(DETECTED_PORTAL_MSG);
 		}
@@ -159,13 +161,13 @@ game_status_t gameLoop(graph_t *graph, player_t *player)
 				unsigned int id = 0;
 				scanf(" %d", &id);
 
-				if (!neighbourFound(*player->room, id))
+				if (!neighbour_found(*player->room, id))
 				{
 					printf(NO_PASSAGE_MSG);
 					continue;
 				}
 
-				player->room = getRoom(graph, id);
+				player->room = get_room(graph, id);
 				break;
 			}
 			else if (action == SHOOT)
@@ -173,7 +175,7 @@ game_status_t gameLoop(graph_t *graph, player_t *player)
 				unsigned int id = 0;
 				scanf(" %d", &id);
 			
-				if (!neighbourFound(*player->room, id))
+				if (!neighbour_found(*player->room, id))
 				{
 					printf(NO_PASSAGE_MSG);
 					continue;
@@ -187,7 +189,7 @@ game_status_t gameLoop(graph_t *graph, player_t *player)
 				{
 					--(player->arrows);
 
-					vertex_t *temp = getRoom(graph, id);
+					vertex_t *temp = get_room(graph, id);
 
 					if (temp->contents == DRAGON)
 					{
@@ -213,7 +215,7 @@ game_status_t gameLoop(graph_t *graph, player_t *player)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // When a mine is activated the room vertex gets deleted
-void mineActivation(graph_t *graph, player_t *player)
+void mine_activation(graph_t *graph, player_t *player)
 {
 	if ((graph == NULL) || (player == NULL)) { return; }
 
@@ -224,18 +226,18 @@ void mineActivation(graph_t *graph, player_t *player)
 		return;
 	}
 
-	removeVertex(graph, player->room);
+	remove_vertex(graph, player->room);
 	player->room = graph->vertices[get_rand_range(0, graph->num_vertices)];
 }
 
 // When a portal is activated a room vertex gets added
 // and the player is teleported to a random room
-void portalActivation(graph_t *graph, player_t *player)
+void portal_activation(graph_t *graph, player_t *player)
 {
 	if ((graph == NULL) || (player == NULL)) { return; }
 
 	// The new vertex will be at pos graph.num_vertices - 1
-	addVertex(graph, EMPTY);
+	add_vertex(graph, EMPTY);
 
 	// The position in the vertex array of the new room
 	unsigned int new = graph->num_vertices - 1;
@@ -250,22 +252,22 @@ void portalActivation(graph_t *graph, player_t *player)
 	}
 
 	// Links the new room with 2 random rooms
-	linkVertices(graph->vertices[new], graph->vertices[r1]);
-	linkVertices(graph->vertices[new], graph->vertices[r2]);
+	link_vertices(graph->vertices[new], graph->vertices[r1]);
+	link_vertices(graph->vertices[new], graph->vertices[r2]);
 
 	// Sets player position to the new room
 	player->room = graph->vertices[new];
 }
 
 // Player gets +1 arrow from the room, and the room becomes EMPTY
-void foundArrow(graph_t *graph, player_t *player)
+void found_arrow(graph_t *graph, player_t *player)
 {
 	++(player->arrows);
 	player->room->contents = EMPTY;
 }
 
 // Prints the room's neighbor's IDs in increasing order
-void printIDs(vertex_t room)
+void print_ids(vertex_t room)
 {
 	edge_t *current = room.edges;
 
@@ -279,7 +281,7 @@ void printIDs(vertex_t room)
 }
 
 // Returns true if the dragon is lurking in a room connected with the given one
-bool dragonCheck(vertex_t room)
+bool dragon_check(vertex_t room)
 {
 	edge_t *current = room.edges;
 
@@ -297,7 +299,7 @@ bool dragonCheck(vertex_t room)
 }
 
 // Returs true if there is a portal in a room connected wutg the given one
-bool portalCheck(vertex_t room)
+bool portal_check(vertex_t room)
 {
 	edge_t *current = room.edges;
 

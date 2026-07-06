@@ -15,7 +15,7 @@
 // The function returns:
 //      -1 on open fail
 //      0 on normal behavior
-int saveFile(graph_t graph, player_t player, char filename[NAME_SIZE * 2])
+int save_file(graph_t graph, player_t player, char filename[NAME_SIZE * 2])
 {
     // OPEN FILE
     int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_APPEND, 0644);
@@ -64,11 +64,11 @@ int saveFile(graph_t graph, player_t player, char filename[NAME_SIZE * 2])
 
     for (int i = 0; i < graph.num_vertices; ++i)
     {
-        unsigned int count = (unsigned int)getEdgeCount(*graph.vertices[i]);
+        unsigned int count = (unsigned int)get_edge_count(*graph.vertices[i]);
         bytesWritten = write(fd, &count, sizeof(count));
         if (bytesWritten == -1) { return -2; }
 
-        graph.vertices[i]->edges = mergeSortList(graph.vertices[i]->edges);
+        graph.vertices[i]->edges = sort_list(graph.vertices[i]->edges);
 
         edge_t *current = graph.vertices[i]->edges;
 
@@ -100,28 +100,28 @@ int saveFile(graph_t graph, player_t player, char filename[NAME_SIZE * 2])
 //      -1 on wrong structure
 //      -2 on open fail
 //      -3 on read fail
-int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
+int load_file(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
 {
     int fd = open(filename, O_RDONLY);
     if (fd == -1) { return -2; }
 
     // Check if the magic number is at the start of the file
-    if (!magicNumberExists(fd, NULL)) { return -1; }
+    if (!magic_number_exists(fd, NULL)) { return -1; }
 
-    graph_t *tempGraph = safeMalloc(sizeof(graph_t));
+    graph_t *tempGraph = safe_malloc(sizeof(graph_t));
     tempGraph->max_id = 0;
     tempGraph->num_vertices = 0;
     tempGraph->vertices = NULL;
-    player_t *tempPlayer = safeMalloc(sizeof(player_t));
-    tempPlayer->room = safeMalloc(sizeof(vertex_t));
+    player_t *tempPlayer = safe_malloc(sizeof(player_t));
+    tempPlayer->room = safe_malloc(sizeof(vertex_t));
 
     // If arrows is < 0 then let the player have a gift of MANY arrows!
     ssize_t bytesRead = read(fd, &tempPlayer->arrows, sizeof(tempPlayer->arrows));
     if (bytesRead == -1)
     {
-        safeFree((void**)&tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        safe_free((void**)&tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -3;
     }
 
@@ -131,16 +131,16 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
     bytesRead = read(fd, &temp, sizeof(tempPlayer->room->id));
     if (bytesRead == -1)
     {
-        safeFree((void**)&tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        safe_free((void**)&tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -3;
     }
     else if (temp < 0)
     {
-        safeFree((void**)&tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        safe_free((void**)&tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -1;
     }
     tempPlayer->room->id = (unsigned int)temp;
@@ -149,16 +149,16 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
     bytesRead = read(fd, &temp, sizeof(tempGraph->max_id));
     if (bytesRead == -1)
     {
-        safeFree((void**)&tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        safe_free((void**)&tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -3;
     }
     else if ((temp < 0) || (tempPlayer->room->id > temp))
     {
-        safeFree((void**)&tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        safe_free((void**)&tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -1;
     }
     tempGraph->max_id = (unsigned int)temp;
@@ -167,30 +167,30 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
     bytesRead = read(fd, &temp, sizeof(tempGraph->num_vertices));
     if (bytesRead == -1)
     {
-        safeFree((void**)&tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        safe_free((void**)&tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -3;
     }
     else if ((temp < 0 || (tempGraph->max_id < temp)))
     {
-        safeFree((void**)&tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        safe_free((void**)&tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -1;
     }
     tempGraph->num_vertices = (unsigned int)temp;
 
     // Check for magic number check-points
-    if (!magicNumberExists(fd, NULL))
+    if (!magic_number_exists(fd, NULL))
     {
-        safeFree((void**)&tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        safe_free((void**)&tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -1;
     }
 
-    tempGraph->vertices = safeMalloc(sizeof(vertex_t*) * tempGraph->num_vertices);
+    tempGraph->vertices = safe_malloc(sizeof(vertex_t*) * tempGraph->num_vertices);
 
     for (int i = 0; i < tempGraph->num_vertices; ++i)
     {
@@ -200,22 +200,22 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
     // Read the vertex array
     for (int i = 0; i < tempGraph->num_vertices; ++i)
     {
-        tempGraph->vertices[i] = safeMalloc(sizeof(vertex_t));
+        tempGraph->vertices[i] = safe_malloc(sizeof(vertex_t));
         tempGraph->vertices[i]->edges = NULL;
 
         bytesRead = read(fd, &temp, sizeof(tempGraph->vertices[i]->id));
         if (bytesRead == -1)
         {
-            freeGraph(tempGraph);
-            safeFree((void**)&tempPlayer->room);
-            safeFree((void**)&tempPlayer);
+            free_graph(tempGraph);
+            safe_free((void**)&tempPlayer->room);
+            safe_free((void**)&tempPlayer);
             return -3;
         }
         else if ((temp < 0) || (temp > tempGraph->max_id))
         {
-            freeGraph(tempGraph);
-            safeFree((void**)&tempPlayer->room);
-            safeFree((void**)&tempPlayer);
+            free_graph(tempGraph);
+            safe_free((void**)&tempPlayer->room);
+            safe_free((void**)&tempPlayer);
             return -1;
         }
         tempGraph->vertices[i]->id = (unsigned int)temp;
@@ -226,9 +226,9 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
         bytesRead = read(fd, &tempContents, sizeof(tempGraph->vertices[i]->contents));
         if (bytesRead == -1)
         {
-            freeGraph(tempGraph);
-            safeFree((void**)&tempPlayer->room);
-            safeFree((void**)&tempPlayer);
+            free_graph(tempGraph);
+            safe_free((void**)&tempPlayer->room);
+            safe_free((void**)&tempPlayer);
             return -3;
         }
         else if (
@@ -239,9 +239,9 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
         tempContents != DRAGON
         )
         {
-            freeGraph(tempGraph);
-            safeFree((void**)&tempPlayer->room);
-            safeFree((void**)&tempPlayer);
+            free_graph(tempGraph);
+            safe_free((void**)&tempPlayer->room);
+            safe_free((void**)&tempPlayer);
             return -1;
         }
         tempGraph->vertices[i]->contents = tempContents;
@@ -265,16 +265,16 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
         bytesRead = read(fd, &temp, sizeof(neighbors));
         if (bytesRead == -1)
         {
-            freeGraph(tempGraph);
-            safeFree((void**)&tempPlayer->room);
-            safeFree((void**)&tempPlayer);
+            free_graph(tempGraph);
+            safe_free((void**)&tempPlayer->room);
+            safe_free((void**)&tempPlayer);
             return -3;
         }
         else if ((temp < 0) || (temp > tempGraph->num_vertices))
         {
-            freeGraph(tempGraph);
-            safeFree((void**)&tempPlayer->room);
-            safeFree((void**)&tempPlayer);
+            free_graph(tempGraph);
+            safe_free((void**)&tempPlayer->room);
+            safe_free((void**)&tempPlayer);
             return -1;
         }
 
@@ -285,27 +285,27 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
         for (int j = 0; j < neighbors; ++j)
         {
             unsigned int id = 0;
-            edge_t *edge = safeMalloc(sizeof(edge_t));
+            edge_t *edge = safe_malloc(sizeof(edge_t));
 
             // If id is < 0 then the save is corrupted
             bytesRead = read(fd, &temp, sizeof(id));
             if (bytesRead == -1)
             {
-                freeGraph(tempGraph);
-                safeFree((void**)&tempPlayer->room);
-                safeFree((void**)&tempPlayer);
+                free_graph(tempGraph);
+                safe_free((void**)&tempPlayer->room);
+                safe_free((void**)&tempPlayer);
                 return -3;
             }
             else if ((temp < 0) || (temp > tempGraph->max_id))
             {
-                freeGraph(tempGraph);
-                safeFree((void**)&tempPlayer->room);
-                safeFree((void**)&tempPlayer);
+                free_graph(tempGraph);
+                safe_free((void**)&tempPlayer->room);
+                safe_free((void**)&tempPlayer);
                 return -1;
             }
             id = (unsigned int)temp;
 
-            edge->to = getRoom(tempGraph, id);
+            edge->to = get_room(tempGraph, id);
             edge->next = NULL;
 
             if (current == NULL)
@@ -322,32 +322,32 @@ int loadFile(char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
     }
 
     // Check if the magic number is at the end of the file
-    if (!magicNumberExists(fd, NULL))
+    if (!magic_number_exists(fd, NULL))
     {
-        freeGraph(tempGraph);
-        safeFree((void**)&tempPlayer->room);
-        safeFree((void**)&tempPlayer);
+        free_graph(tempGraph);
+        safe_free((void**)&tempPlayer->room);
+        safe_free((void**)&tempPlayer);
         return -1;
     }
 
     // Assign the graph to the passed one after freeing
-    freeGraph(*graph);
+    free_graph(*graph);
     *graph = tempGraph;
 
     // Assign player info to the passed player
     player->arrows = tempPlayer->arrows;
     strcpy(player->name, tempPlayer->name);
-    player->room = getRoom(*graph, tempPlayer->room->id);
+    player->room = get_room(*graph, tempPlayer->room->id);
 
     // Free the temp player
-    safeFree((void**)&tempPlayer->room);
-    safeFree((void**)&tempPlayer);    
+    safe_free((void**)&tempPlayer->room);
+    safe_free((void**)&tempPlayer);    
 
     return 0;
 }
 
 // Checks if the file with the given name exists in the save file directory
-bool fileExists(char filename[NAME_SIZE * 2])
+bool file_exists(char filename[NAME_SIZE * 2])
 {
     if (access(filename, F_OK) != 0)
     {
@@ -365,14 +365,14 @@ bool fileExists(char filename[NAME_SIZE * 2])
 //      -1 on open fail
 //      -2 on read fail
 //      -3 on incorrect structure
-int fileStructureCheck(char filename[NAME_SIZE * 2])
+int file_structure_check(char filename[NAME_SIZE * 2])
 {
     int fd = open(filename, O_RDONLY);
     if (fd == -1) { return -1; }
 
     int error = 0;
 
-    if (!magicNumberExists(fd, &error))
+    if (!magic_number_exists(fd, &error))
     {
         if (error == -1) { return -2; }
         return -3;
@@ -389,7 +389,7 @@ int fileStructureCheck(char filename[NAME_SIZE * 2])
     else if (temp < 0) { return -3; }
     vertexCount = (unsigned int)temp;
 
-    if (!magicNumberExists(fd, &error))
+    if (!magic_number_exists(fd, &error))
     {
         if (error == -1) { return -2; }
         return -3;
@@ -410,7 +410,7 @@ int fileStructureCheck(char filename[NAME_SIZE * 2])
         if (bytesMoved == -1) { return -2; }
     }
 
-    if (!magicNumberExists(fd, &error))
+    if (!magic_number_exists(fd, &error))
     {
         if (error == -1) { return -2; }
         return -3;
@@ -426,7 +426,7 @@ int fileStructureCheck(char filename[NAME_SIZE * 2])
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Checks if the magic number is at the given place
-bool magicNumberExists(int fd, int *error)
+bool magic_number_exists(int fd, int *error)
 {
     char magic[MAGIC_NUMBER_LENGTH];
     ssize_t bytesRead = read(fd, magic, MAGIC_NUMBER_LENGTH);

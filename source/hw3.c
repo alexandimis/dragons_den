@@ -1,3 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
 #include "graph.h"
 #include "game.h"
 #include "random.h"
@@ -6,10 +11,6 @@
 #include "util.h"
 #include "fileio.h"
 #include "hw3.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 int main (int argc, char *argv[]) 
 {
@@ -32,15 +33,17 @@ int main (int argc, char *argv[])
 	game_status_t status = GAME_OVER;
 
 	// Initializations
-	player_t player = playerInit();
+	player_t player = player_init();
 	char filename[NAME_SIZE * 2];
     snprintf(filename, sizeof(filename), "%s.sav", player.name);
 	graph_t *gameGraph = NULL;
 
 	// Main loop
+	bool running = true;
 	do {
 		action = main_menu();
-		switch (action) {
+		switch (action) 
+		{
 			case NEW:
 				new(&status, &player, &gameGraph, level_factor);
 				break;
@@ -51,16 +54,16 @@ int main (int argc, char *argv[])
 				save(status, filename, gameGraph, player);
 				break;
 			case CONTINUE:
-				continueGame(&status, gameGraph, &player);
+				continue_game(&status, gameGraph, &player);
 				break;
 			case HELP:
 				printf(INSTRUCTIONS_MSG);
 				break;
 			case QUIT:
-				quit(status, gameGraph, player);
+				quit(status, gameGraph, player, &running);
 				break;
 		}
-	} while (action != QUIT);
+	} while (running);
 
 	return 0;
 }
@@ -82,8 +85,8 @@ void new(game_status_t *status, player_t *player, graph_t **graph, int levelFact
 
 		if (action == 'y')
 		{
-			freeGraph(*graph);
-			*graph = createGame(levelFactor, player);
+			free_graph(*graph);
+			*graph = create_game(levelFactor, player);
 			player->arrows = INIT_ARROWS;
 		}
 		else
@@ -93,15 +96,15 @@ void new(game_status_t *status, player_t *player, graph_t **graph, int levelFact
 	}
 	else
 	{
-		freeGraph(*graph);
-		*graph = createGame(levelFactor, player);
+		free_graph(*graph);
+		*graph = create_game(levelFactor, player);
 		player->arrows = INIT_ARROWS;
 	}
 
-	*status = gameLoop(*graph, player);
+	*status = game_loop(*graph, player);
 }
 
-void quit(game_status_t status, graph_t *graph, player_t player)
+void quit(game_status_t status, graph_t *graph, player_t player, bool *running)
 {
 	if (status == IN_PROGRESS)
 	{
@@ -112,16 +115,19 @@ void quit(game_status_t status, graph_t *graph, player_t player)
 
 		if (action == 'n')
 		{
+			*running = true;
 			return;
 		}
 		else
 		{
-			freeGraph(graph);
+			*running = false;
+			free_graph(graph);
 			return;
 		}
 	}
 
-	freeGraph(graph);
+	*running = false;
+	free_graph(graph);
 }
 
 void load(game_status_t *status, char filename[NAME_SIZE * 2], graph_t **graph, player_t *player)
@@ -137,13 +143,13 @@ void load(game_status_t *status, char filename[NAME_SIZE * 2], graph_t **graph, 
 
 		if (action == 'y')
 		{
-			if (!fileExists(filename))
+			if (!file_exists(filename))
 			{
 				printf(OPEN_ERROR_MSG);
 				return;
 			}
 
-			error = fileStructureCheck(filename);
+			error = file_structure_check(filename);
 
 			if (error == -1)
 			{
@@ -167,13 +173,13 @@ void load(game_status_t *status, char filename[NAME_SIZE * 2], graph_t **graph, 
 		}
 	}
 
-	if (!fileExists(filename))
+	if (!file_exists(filename))
 	{
 		printf(OPEN_ERROR_MSG);
 		return;
 	}
 
-	error = loadFile(filename, graph, player);
+	error = load_file(filename, graph, player);
 
 	if (error == -1)
 	{
@@ -191,7 +197,7 @@ void load(game_status_t *status, char filename[NAME_SIZE * 2], graph_t **graph, 
 		return;
 	}
 
-	*status = gameLoop(*graph, player);
+	*status = game_loop(*graph, player);
 }
 
 void save(game_status_t status, char filename[NAME_SIZE * 2], graph_t *graph, player_t player)
@@ -210,7 +216,7 @@ void save(game_status_t status, char filename[NAME_SIZE * 2], graph_t *graph, pl
 			printf("Atempt to save file while the graph was pointing to the zero page (NULL)");
 		}
 
-		bool fileFound = fileExists(filename);
+		bool fileFound = file_exists(filename);
 
 		if (fileFound)
 		{
@@ -221,7 +227,7 @@ void save(game_status_t status, char filename[NAME_SIZE * 2], graph_t *graph, pl
 
 			if (action == 'y')
 			{
-				error = saveFile(*graph, player, filename);
+				error = save_file(*graph, player, filename);
 			}
 			else
 			{
@@ -230,7 +236,7 @@ void save(game_status_t status, char filename[NAME_SIZE * 2], graph_t *graph, pl
 		}
 		else
 		{
-			error = saveFile(*graph, player, filename);
+			error = save_file(*graph, player, filename);
 		}		
 	}
 
@@ -248,7 +254,7 @@ void save(game_status_t status, char filename[NAME_SIZE * 2], graph_t *graph, pl
 	}
 }
 
-void continueGame(game_status_t *status, graph_t *graph, player_t *player)
+void continue_game(game_status_t *status, graph_t *graph, player_t *player)
 {
 	if (*status != IN_PROGRESS)
 	{
@@ -256,6 +262,6 @@ void continueGame(game_status_t *status, graph_t *graph, player_t *player)
 	}
 	else
 	{
-		*status = gameLoop(graph, player);
+		*status = game_loop(graph, player);
 	}
 }

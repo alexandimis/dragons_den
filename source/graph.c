@@ -4,9 +4,9 @@
 #include <stdio.h>
 
 // Creates an empty graph
-graph_t *emptyGraphInit()
+graph_t *empty_graph_init()
 {
-    graph_t *graph = safeMalloc(sizeof(graph_t));
+    graph_t *graph = safe_malloc(sizeof(graph_t));
 
     graph->max_id = 0;
     graph->num_vertices = 0;
@@ -16,34 +16,34 @@ graph_t *emptyGraphInit()
 }
 
 // Adds a new vertex in the vertex array (newly allocated)
-void addVertex(graph_t *graph, contents_t contents)
+void add_vertex(graph_t *graph, contents_t contents)
 {
     if (graph == NULL) { return; }
 
     // Increase vertex array size by 1
     ++(graph->num_vertices);
-    graph->vertices = safeRealloc(graph->vertices, sizeof(vertex_t*) * (graph->num_vertices));
+    graph->vertices = safe_realloc(graph->vertices, sizeof(vertex_t*) * (graph->num_vertices));
     
     // Create new EMPTY vertex and adds it at the end of the array
-    vertex_t *vertex = createVertex(contents, ++(graph->max_id));
+    vertex_t *vertex = create_vertex(contents, ++(graph->max_id));
     graph->vertices[graph->num_vertices - 1] = vertex;
 }
 
 // Links two vertices
-void linkVertices(vertex_t *v1, vertex_t *v2)
+void link_vertices(vertex_t *v1, vertex_t *v2)
 {
     if ((v1 == NULL) || (v2 == NULL)) { return; }
 
     // Add v2 to v1's edge list
     if (v1->edges == NULL)
     {
-        v1->edges = safeMalloc(sizeof(edge_t));
+        v1->edges = safe_malloc(sizeof(edge_t));
         v1->edges->to = v2;
         v1->edges->next = NULL;
     }
     else
     {
-        edge_t *new = safeMalloc(sizeof(edge_t));
+        edge_t *new = safe_malloc(sizeof(edge_t));
 
         new->to = v2;
         new->next = v1->edges;
@@ -53,13 +53,13 @@ void linkVertices(vertex_t *v1, vertex_t *v2)
     // Add v1 to v2's edge list
     if (v2->edges == NULL)
     {
-        v2->edges = safeMalloc(sizeof(edge_t));
+        v2->edges = safe_malloc(sizeof(edge_t));
         v2->edges->to = v1;
         v2->edges->next = NULL;
     }
     else
     {
-        edge_t *new = safeMalloc(sizeof(edge_t));
+        edge_t *new = safe_malloc(sizeof(edge_t));
 
         new->to = v1;
         new->next = v2->edges;
@@ -68,7 +68,7 @@ void linkVertices(vertex_t *v1, vertex_t *v2)
 }
 
 // Unlinks two vertices
-void unlinkVertices(vertex_t *v1, vertex_t *v2)
+void unlink_vertices(vertex_t *v1, vertex_t *v2)
 {
     if ((v1 == NULL) || (v2 == NULL)) { return; }
 
@@ -84,7 +84,7 @@ void unlinkVertices(vertex_t *v1, vertex_t *v2)
     else if (current->next == NULL)
     {
         v1->edges = NULL;
-        safeFree((void**)&current);
+        safe_free((void**)&current);
     }
     else
     {
@@ -97,19 +97,19 @@ void unlinkVertices(vertex_t *v1, vertex_t *v2)
                 if (previous == NULL) // First entry removal
                 {
                     v1->edges = current->next;
-                    safeFree((void**)&current);
+                    safe_free((void**)&current);
                     break;
                 }
                 else if (current->next == NULL) // Last entry removal
                 {
                     previous->next = NULL;
-                    safeFree((void**)&current);
+                    safe_free((void**)&current);
                     break;
                 }
                 else // In between
                 {
                     previous->next = current->next;
-                    safeFree((void**)&current);
+                    safe_free((void**)&current);
                     break;
                 }
             }
@@ -129,7 +129,7 @@ void unlinkVertices(vertex_t *v1, vertex_t *v2)
     else if (current->next == NULL)
     {
         v2->edges = NULL;
-        safeFree((void**)&current);
+        safe_free((void**)&current);
     }
     else
     {
@@ -142,19 +142,19 @@ void unlinkVertices(vertex_t *v1, vertex_t *v2)
                 if (previous == NULL) // First entry removal
                 {
                     v2->edges = current->next;
-                    safeFree((void**)&current);
+                    safe_free((void**)&current);
                     break;
                 }
                 else if (current->next == NULL) // Last entry removal
                 {
                     previous->next = NULL;
-                    safeFree((void**)&current);
+                    safe_free((void**)&current);
                     break;
                 }
                 else // In between
                 {
                     previous->next = current->next;
-                    safeFree((void**)&current);
+                    safe_free((void**)&current);
                     break;
                 }
             }
@@ -166,7 +166,7 @@ void unlinkVertices(vertex_t *v1, vertex_t *v2)
 }
 
 // Removes a single vertex from the vertices array
-void removeVertex(graph_t *graph, vertex_t *vertex)
+void remove_vertex(graph_t *graph, vertex_t *vertex)
 {
     for (int i = 0; i < graph->num_vertices; ++i)
     {
@@ -178,7 +178,7 @@ void removeVertex(graph_t *graph, vertex_t *vertex)
             {
                 edge_t *previous = current;
                 current = current->next;
-                unlinkVertices(vertex, previous->to);
+                unlink_vertices(vertex, previous->to);
             }
 
             vertex_t *temp = graph->vertices[i];
@@ -186,14 +186,14 @@ void removeVertex(graph_t *graph, vertex_t *vertex)
             graph->vertices[graph->num_vertices - 1] = temp;
 
             // Free the vertex for removal
-            safeFree((void**)&graph->vertices[graph->num_vertices - 1]);
+            safe_free((void**)&graph->vertices[graph->num_vertices - 1]);
             --(graph->num_vertices);
         }
     }
 }
 
 // Frees the graph
-void freeGraph(graph_t *graph)
+void free_graph(graph_t *graph)
 {
     if (graph == NULL) { return; }
 
@@ -208,16 +208,16 @@ void freeGraph(graph_t *graph)
             {
                 edge_t *next = current->next;
 
-                safeFree((void**)&current);
+                safe_free((void**)&current);
                 current = next;
             }
 
-            safeFree((void**)&graph->vertices[i]);
+            safe_free((void**)&graph->vertices[i]);
         }
     }
-    safeFree((void**)&graph->vertices);
+    safe_free((void**)&graph->vertices);
 
-    safeFree((void**)&graph);
+    safe_free((void**)&graph);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,9 +227,9 @@ void freeGraph(graph_t *graph)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Creates a vertex with the given parameters
-vertex_t *createVertex(contents_t contents, unsigned int id)
+vertex_t *create_vertex(contents_t contents, unsigned int id)
 {
-    vertex_t *vertex = safeMalloc(sizeof(vertex_t));
+    vertex_t *vertex = safe_malloc(sizeof(vertex_t));
 
     vertex->id = id;
     vertex->contents = contents;
@@ -239,7 +239,7 @@ vertex_t *createVertex(contents_t contents, unsigned int id)
 }
 
 // Returns a room based on a given id
-vertex_t *getRoom(graph_t *graph, unsigned int id)
+vertex_t *get_room(graph_t *graph, unsigned int id)
 {
     vertex_t *room = NULL;
 
@@ -256,7 +256,7 @@ vertex_t *getRoom(graph_t *graph, unsigned int id)
 }
 
 // Returns the number of edges/passages connected with the given room
-int getEdgeCount(vertex_t room)
+int get_edge_count(vertex_t room)
 {
     edge_t *current = room.edges;
     int count = 0;
@@ -271,7 +271,7 @@ int getEdgeCount(vertex_t room)
 }
 
 // Checks if the give id is a neighbour of the given room
-bool neighbourFound(vertex_t room, unsigned int id)
+bool neighbour_found(vertex_t room, unsigned int id)
 {
     edge_t *current = room.edges;
 
@@ -291,20 +291,20 @@ bool neighbourFound(vertex_t room, unsigned int id)
 // Sorting functions
 
 // Merge sort for the linked list edge_t
-edge_t *mergeSortList(edge_t *head)
+edge_t *sort_list(edge_t *head)
 {
     if ((head == NULL) || (head->next == NULL)) { return head; }
 
-    edge_t *second = splitList(head);
+    edge_t *second = split_list(head);
 
-    head = mergeSortList(head);
-    second = mergeSortList(second);
+    head = sort_list(head);
+    second = sort_list(second);
 
-    return mergeList(head, second);
+    return merge_list(head, second);
 }
 
 // Splits the linked list in two
-edge_t *splitList(edge_t *head)
+edge_t *split_list(edge_t *head)
 {
     edge_t *fast = head;
     edge_t *slow = head;
@@ -326,19 +326,19 @@ edge_t *splitList(edge_t *head)
 }
 
 // Merges two linked lists
-edge_t *mergeList(edge_t *first, edge_t *second)
+edge_t *merge_list(edge_t *first, edge_t *second)
 {
     if (first == NULL) { return second; }
     if (second == NULL) { return first; }
 
     if (first->to->id < second->to->id)
     {
-        first->next = mergeList(first->next, second);
+        first->next = merge_list(first->next, second);
         return first;
     }
     else
     {
-        second->next = mergeList(first, second->next);
+        second->next = merge_list(first, second->next);
         return second;
     }
 }

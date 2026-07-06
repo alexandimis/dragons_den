@@ -32,19 +32,19 @@ typedef struct {
 
 /* Graph Functions */
 
-graph_t *emptyGraphInit();
-void addVertex(graph_t *graph, contents_t contents);
-void linkVertices(vertex_t *v1, vertex_t *v2);
-void unlinkVertices(vertex_t *v1, vertex_t *v2);
-void removeVertex(graph_t *graph, vertex_t *vertex);
-void freeGraph(graph_t *graph);
+graph_t *empty_graph_init();
+void add_vertex(graph_t *graph, contents_t contents);
+void link_vertices(vertex_t *v1, vertex_t *v2);
+void unlink_vertices(vertex_t *v1, vertex_t *v2);
+void remove_vertex(graph_t *graph, vertex_t *vertex);
+void free_graph(graph_t *graph);
 
-vertex_t *createVertex(contents_t contents, unsigned int id);
-vertex_t *getRoom(graph_t *graph, unsigned int id);
-int getEdgeCount(vertex_t room);
-bool neighbourFound(vertex_t room, unsigned int id);
+vertex_t *create_vertex(contents_t contents, unsigned int id);
+vertex_t *get_room(graph_t *graph, unsigned int id);
+int get_edge_count(vertex_t room);
+bool neighbour_found(vertex_t room, unsigned int id);
 
 // Sorting functions
-edge_t *mergeSortList(edge_t *head);
-edge_t *splitList(edge_t *head);
-edge_t *mergeList(edge_t *first, edge_t *second);
+edge_t *sort_list(edge_t *head);
+edge_t *split_list(edge_t *head);
+edge_t *merge_list(edge_t *first, edge_t *second);
