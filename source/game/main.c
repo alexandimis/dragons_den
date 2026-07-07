@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include "graph.h"
 #include "game.h"
@@ -79,6 +81,9 @@ int main (int argc, char *argv[])
 				perror("failed to connect to server: ");
 				return -1;
 			}
+
+			int party_size = 6;
+			server_send_data(party_size, PARTY_HOST_MAGIC_NUMBER);
 		} else if (host_server == 'n')// Joining
 		{
 
