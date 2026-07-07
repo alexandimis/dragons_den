@@ -7,6 +7,7 @@
 #include <stdbool.h>
 
 #include "server.h"
+#include "../game/client.h"
 
 int main(int argc, char **argv)
 {
@@ -26,13 +27,13 @@ int main(int argc, char **argv)
     if (server_fd == -1) { return -1; }
 
     // Address struct initialization
+    char *system_path = "/tmp/dragons_den.sock";
     struct sockaddr_un addr;
     addr.sun_family = AF_UNIX;
-    strcpy(addr.sun_path, argv[1]);
+    strcpy(addr.sun_path, system_path);
     
-    // Bind the socket fd to the socket adress
-    system("rm /tmp/dragons_den.sock"); // WARNING!! If the socket address is changed, this has to be changed too
-
+    // Bind the socket fd to the socket adress, after ensuring its available
+    unlink(system_path);
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
         perror("bind() failed: ");
@@ -43,17 +44,30 @@ int main(int argc, char **argv)
     listen(server_fd, MAX_PLAYERS);
 
     // Accept connections
+    int client_fd = 0;
+    int party_size = accept_leader(server_fd, &client_fd);
+    if (party_size == -1)
+    {
+        perror("Invalid party size: ");
+        close(server_fd);
+        unlink(system_path);
+        return -1;
+    }
+
+    printf("Party size is %d\n", party_size);
+
     bool lobby_full = false;
     
     while (!lobby_full)
     {
-        
+        break;
     }
     
     
-    int buffer = 0, client_fd = 0, bytes_read = 0;
-    client_fd = accept(server_fd, NULL, NULL);
-    printf("New connection %d\n", client_fd);
+    // int buffer = 0, client_fd = 0, bytes_read = 0;
+
+    // client_fd = accept(server_fd, NULL, NULL);
+    // printf("New connection %d\n", client_fd);
 
 
 
@@ -80,7 +94,56 @@ int main(int argc, char **argv)
 
 
     close(server_fd);
-    unlink(argv[1]); // Maybe change argv[1]
+    unlink(system_path);
 
     return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Connect with the party leader and read the wanted party size
+// Returns the number of members in the party
+int accept_leader(int server_fd, int *client_fd)
+{
+    int party_size = -1;
+
+    while (1)
+    {
+        *client_fd = accept(server_fd, NULL, NULL);
+        int bytes_read = 0;
+
+        // Read magic number
+        char magic_number[64];
+        do 
+        {
+            bytes_read = recv(*client_fd, magic_number, sizeof(char *), 0);
+            if (bytes_read == -1)
+            {
+                perror("recv() failed");
+                break;
+            }
+            
+        } while ((bytes_read > 0) && (party_size != -1));
+
+        if (strncmp(magic_number, PARTY_HOST_MAGIC_NUMBER, strlen(PARTY_HOST_MAGIC_NUMBER)) != 0)
+        {
+            printf("%s\n", magic_number);
+
+            continue;
+        }
+    }
+
+
+    
+    printf("New connection %d\n", *client_fd);
+
+    
+
+    
+
+    return party_size;
 }
