@@ -174,4 +174,10 @@
 #define SAVE_OK_MSG \
 "\nGame saved.\n"
 
+#define ASK_GAME_MODE \
+"\n\tDoes your path contain others? (y/n) "
+
+#define HOST_OR_JOIN_SERVER \
+"\n\tAre you the host? (y/n) "
+
 #endif

@@ -10,7 +10,7 @@
 #include "libhw3.h"
 #include "util.h"
 #include "fileio.h"
-#include "hw3.h"
+#include "main.h"
 #include "client.h"
 
 int main (int argc, char *argv[]) 
@@ -39,35 +39,79 @@ int main (int argc, char *argv[])
     snprintf(filename, sizeof(filename), "%s.sav", player.name);
 	graph_t *gameGraph = NULL;
 
-	// Connect to server
-	server_connect("/tmp/dragons_den.sock");
+	// Chose game mode
+	char gamemode = 'a';
 
-	// Main loop
-	bool running = true;
-	do {
-		action = main_menu();
-		switch (action) 
+	while (1)
+	{
+		printf(ASK_GAME_MODE);
+		scanf(" %c", &gamemode);
+		
+		if ((gamemode != 'y') && (gamemode != 'n'))
 		{
-			case NEW:
-				new(&status, &player, &gameGraph, level_factor);
-				break;
-			case LOAD:
-				load(&status, filename, &gameGraph, &player);
-				break;
-			case SAVE:
-				save(status, filename, gameGraph, player);
-				break;
-			case CONTINUE:
-				continue_game(&status, gameGraph, &player);
-				break;
-			case HELP:
-				printf(INSTRUCTIONS_MSG);
-				break;
-			case QUIT:
-				quit(status, gameGraph, player, &running);
-				break;
+			printf(WRONG_SELECTION_MSG);
+			continue;
 		}
-	} while (running);
+		break;
+	}	
+	
+	if (gamemode == 'y') // Multiplayer
+	{
+		char host_server = 'a';
+
+		while (1)
+		{
+			printf(HOST_OR_JOIN_SERVER);
+			scanf(" %c", &host_server);
+		
+			if ((host_server != 'y') && (host_server != 'n'))
+			{
+				continue;
+			}
+			break;
+		}
+		
+		if (host_server == 'y') // Hosting
+		{
+			// Connect to server
+			if (server_connect_host("/tmp/dragons_den.sock") == -1)
+			{
+				perror("failed to connect to server: ");
+				return -1;
+			}
+		} else if (host_server == 'n')// Joining
+		{
+
+		}
+	} else if (gamemode == 'n') // Singleplayer
+	{
+		// Main loop
+		bool running = true;
+		do {
+			action = main_menu();
+			switch (action) 
+			{
+				case NEW:
+					new(&status, &player, &gameGraph, level_factor);
+					break;
+				case LOAD:
+					load(&status, filename, &gameGraph, &player);
+					break;
+				case SAVE:
+					save(status, filename, gameGraph, player);
+					break;
+				case CONTINUE:
+					continue_game(&status, gameGraph, &player);
+					break;
+				case HELP:
+					printf(INSTRUCTIONS_MSG);
+					break;
+				case QUIT:
+					quit(status, gameGraph, player, &running);
+					break;
+			}
+		} while (running);
+	}
 
 	return 0;
 }
