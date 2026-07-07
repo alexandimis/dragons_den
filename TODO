@@ -2,6 +2,10 @@ TODO:
 	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)
 
 alex:
+	-Make the server put the players in an array, where the first one is the host (when connecting
+	 to a user it uses a number (1 or 0 maybe) to see if its a host or a member) and after the host
+	 only members join, whereas before the host, only hosts join	
+
 	-Restructure everything so the server handles everything and sends information to the user
 
 maria:
