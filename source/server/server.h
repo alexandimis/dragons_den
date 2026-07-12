@@ -3,5 +3,7 @@
 
     #define MAX_PLAYERS 5
 
-    int accept_leader(int server_fd, int *client_fd);
+    typedef struct {
+        int user_fd;
+    } user_t;
 #endif

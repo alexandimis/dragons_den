@@ -1,4 +1,4 @@
-CFLAGS = -Wall -g -fsanitize=address # -D DEBUG
+CFLAGS = -Wall -g -fsanitize=address -pthread # -D DEBUG
 
 run: server.o
 	gcc $(CFLAGS) server.o -o run
