@@ -35,15 +35,11 @@ int main (int argc, char *argv[])
 	// there's no active game initially
 	game_status_t status = GAME_OVER;
 
-	// Initializations
+	// Player init
 	player_t player = player_init();
-	char filename[NAME_SIZE * 2];
-    snprintf(filename, sizeof(filename), "%s.sav", player.name);
-	graph_t *gameGraph = NULL;
 
 	// Chose game mode
 	char gamemode = 'a';
-
 	while (1)
 	{
 		printf(ASK_GAME_MODE);
@@ -59,37 +55,28 @@ int main (int argc, char *argv[])
 	
 	if (gamemode == 'y') // Multiplayer
 	{
-		char host_server = 'a';
-
-		while (1)
+		// Connect to the server
+		char *socket_path = "/tmp/dragons_den.sock";
+		if (server_connect(socket_path) == -1)
 		{
-			printf(HOST_OR_JOIN_SERVER);
-			scanf(" %c", &host_server);
-		
-			if ((host_server != 'y') && (host_server != 'n'))
-			{
-				continue;
-			}
-			break;
+			perror("server_connect() failed: ");
+			printf(MULTPIPLAYER_JOIN_FAIL);
+			return -1;
 		}
-		
-		if (host_server == 'y') // Hosting
-		{
-			// Connect to server
-			if (server_connect_host("/tmp/dragons_den.sock") == -1)
-			{
-				perror("failed to connect to server: ");
-				return -1;
-			}
 
-			int party_size = 6;
-			server_send_data(party_size, PARTY_HOST_MAGIC_NUMBER);
-		} else if (host_server == 'n')// Joining
+		//Main loop
+		bool running = true;
+		do
 		{
-
-		}
+			in_game_menu();
+		} while (running);
 	} else if (gamemode == 'n') // Singleplayer
 	{
+		// Initializations
+		char filename[NAME_SIZE * 2];
+		snprintf(filename, sizeof(filename), "%s.sav", player.name);
+		graph_t *gameGraph = NULL;
+
 		// Main loop
 		bool running = true;
 		do {

@@ -9,7 +9,7 @@ int client_fd;
 struct sockaddr_un addr;
 
 // Connect to the server
-int server_connect_host(char *socket_path)
+int server_connect(char *socket_path)
 {
     client_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 
