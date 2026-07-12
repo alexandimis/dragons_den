@@ -1,12 +1,12 @@
 TODO:
-	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)
+	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)				(OPTIONAL)
 
 alex:
-	-Make the server put the players in an array, where the first one is the host (when connecting
-	 to a user it uses a number (1 or 0 maybe) to see if its a host or a member) and after the host
-	 only members join, whereas before the host, only hosts join	
+	-The server will run the game loop (like an existing world) and accept players constantly (either at the start of each game loop, or simultaneously from another thread)
 
-	-Restructure everything so the server handles everything and sends information to the user
+	-The server has to handle player input like events... for example if i press shoot to room 23 now, it registers it now, like any other player too (maybe each player has his own thread?)
+
+	-Restructure everything so the server handles everything and sends information to the user							(IM ON IT)
 
 maria:
 
