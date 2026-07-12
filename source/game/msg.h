@@ -175,9 +175,9 @@
 "\nGame saved.\n"
 
 #define ASK_GAME_MODE \
-"\n\tDoes your path contain others? (y/n) "
+"\n\tWould you like to join the multiplayer realm? (y/n) "
 
-#define HOST_OR_JOIN_SERVER \
-"\n\tAre you the host? (y/n) "
+#define MULTPIPLAYER_JOIN_FAIL \
+"\n\tCouldn't find a portal to that realm..\n"
 
 #endif
