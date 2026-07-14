@@ -1,6 +1,6 @@
 #ifndef CLIENT_H
     #define CLIENT_H
 
-    int server_connect(char *socket_path);
+    player_t server_connect(char *socket_path, player_t player);
 
 #endif
