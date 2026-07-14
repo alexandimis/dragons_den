@@ -5,27 +5,89 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <string.h>
 
+#include "../game/game.h"
 #include "server.h"
 
+// Global variables
 int server_fd;
 struct sockaddr_un addr;
+int connected_users;
+list_t users;
 
-// *NOTE* maybe it could be a user list instead of an array...
-// Whenever a user connects to the server, add them to the user array (probably a dynamic array of pointers to user structs)
-// Whenever a user disconnects, remove them from the array and rearrange it
-void *user_connection_handling(void *)
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// THREAD FUNCTIONS
+
+// Whenever a user connects to the server, add them to the user list
+void *user_connect(void *)
 {
     socklen_t addr_len = sizeof(addr);
 
     while (1)
     {
-        accept(server_fd, (struct sockaddr *)&addr, &addr_len);
-        printf("NEW CONNECTION!\n");
+        int client_fd = accept(server_fd, (struct sockaddr *)&addr, &addr_len);
+        if (client_fd == -1)
+        {
+            perror("accept() failed: ");
+            return NULL;
+        }
+
+        char player_name[NAME_SIZE];
+        int bytes_read = recv(client_fd, player_name, sizeof(char) * NAME_SIZE, 0);
+        if (bytes_read == -1)
+        {
+            perror("recv() failed: ");
+            close(client_fd);
+            return NULL;
+        }
+        
+        ++connected_users;
+        // Add player to the user list
+
+        printf("THE NAME IS %s..from %d bytes\n", player_name, bytes_read);
     }
 
     return NULL;
 }
+
+// Whenever a user disconnects, remove them from the user list
+void *user_disconnect(void *)
+{
+    while (1)
+    {
+        // No need for constant checking if someone is offline
+        sleep(AFK_TIMEOUT);
+        list_t *current = users.next; 
+        
+        while (current != NULL)
+        {
+            if (ping(current->user)) // Is online
+            {
+                current = current->next;
+                continue;
+            }
+
+            // Is offline
+            
+            // REMOVE USER
+            current = current->next
+        }
+    }
+
+    return NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **argv)
 {
@@ -46,15 +108,20 @@ int main(int argc, char **argv)
 
     listen(server_fd, MAX_PLAYERS);
 
-    // Create a thread to handle connections
-    pthread_t user_connection_handling_thread;
-    pthread_create(&user_connection_handling_thread, NULL, user_connection_handling, NULL);
+    // Create 2 threads to handle connections
+    connected_users = 0;
+    pthread_t connect_thread;
+    pthread_create(&connect_thread, NULL, user_connect, NULL);
 
-    
+    users.next = NULL;
+    user_t head;
+    strcpy(head.name, "HEAD_OF_LIST");
+    head.socket_fd = -1;
+    head.user_fd = -1;
+    users.user = head;
 
-    // Accept connections
-    // int client_fd[MAX_PLAYERS] = {};
-    // int connected_players = 0;
+    pthread_t disconnect_thread;
+    pthread_create(&disconnect_thread, NULL, user_disconnect, 0);
     
     bool running = true;
     while (running)
@@ -62,7 +129,8 @@ int main(int argc, char **argv)
 
     }
 
-    pthread_join(user_connection_handling_thread, NULL);
+    pthread_join(user_connect, NULL);
+    pthread_join(user_disconnect, NULL);
     close(server_fd);
     unlink(system_path);
 
@@ -74,3 +142,15 @@ int main(int argc, char **argv)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Pings a user.. Returns true if the user pings back (is online), false if doesn't until a timeout value (offline)
+bool ping(user_t user)
+{
+    bool online = true;
+
+    // Ping
+    
+    // Wait for ping
+
+    return online;
+}
