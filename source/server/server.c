@@ -76,7 +76,7 @@ void *user_disconnect(void *)
             // Is offline
             
             // REMOVE USER
-            current = current->next
+            current = current->next;
         }
     }
 

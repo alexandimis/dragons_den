@@ -35,7 +35,7 @@ int main (int argc, char *argv[])
 	// there's no active game initially
 	game_status_t status = GAME_OVER;
 
-	// Player init
+	// Player init				*NOTE*: KEEP THIS HERE FOR THE NAME INIT
 	player_t player = player_init();
 
 	// Chose game mode
@@ -57,19 +57,23 @@ int main (int argc, char *argv[])
 	{
 		// Connect to the server
 		char *socket_path = "/tmp/dragons_den.sock";
-		if (server_connect(socket_path) == -1)
+		
+		player = server_connect(socket_path, player);
+		if (player.arrows == -1)
 		{
 			perror("server_connect() failed: ");
 			printf(MULTPIPLAYER_JOIN_FAIL);
 			return -1;
 		}
 
-		//Main loop
-		bool running = true;
-		do
+		//Game loop imidiatelly.. no menu loop
+		status = multiplayer_game_loop(&player);
+		
+		// If status is GAME OVER the player died
+		if (status == GAME_OVER)
 		{
-			in_game_menu();
-		} while (running);
+			// Handle death message and options
+		}
 	} else if (gamemode == 'n') // Singleplayer
 	{
 		// Initializations
