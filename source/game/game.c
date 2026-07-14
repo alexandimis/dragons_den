@@ -211,7 +211,14 @@ game_status_t game_loop(graph_t *graph, player_t *player)
 game_status_t multiplayer_game_loop(player_t *player)
 {
 	// Sync player data with server
-	player_t server_player;
+	game_status_t status = IN_PROGRESS;
+
+	while (1)
+	{
+		in_game_menu();
+	}
+
+	return status;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
