@@ -2,11 +2,11 @@ TODO:
 	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)				(OPTIONAL)
 
 alex:
-	-The server will run the game loop (like an existing world) and accept players constantly (either at the start of each game loop, or simultaneously from another thread)
+	-Init user_t variable at user login with name, id and socket_fd (ON IT)
 
-	-The server has to handle player input like events... for example if i press shoot to room 23 now, it registers it now, like any other player too (maybe each player has his own thread?)
+	-Complete user connecting (adding to user list) and disconnecting (removing from user list)
 
-	-Restructure everything so the server handles everything and sends information to the user							(IM ON IT)
+	-Implement event-based user input (no particular order for the players)
 
 maria:
 
