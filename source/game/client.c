@@ -43,20 +43,3 @@ player_t server_connect(char *socket_path, player_t player)
     return player;
 }
 
-// Send the server data 
-int server_send_data(int data, char *magic_number)
-{
-    if (send(client_fd, magic_number, sizeof(magic_number), 0) == -1)
-    {
-        perror("sendto() failed to send data: ");
-        return -1;
-    }
-
-    if (send(client_fd, &data, sizeof(data), 0) == -1)
-    {
-        perror("sendto() failed to send data: ");
-        return -1;
-    }
-
-    return 0;
-}
