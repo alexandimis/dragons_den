@@ -14,7 +14,8 @@
 int server_fd;
 struct sockaddr_un addr;
 int connected_users;
-list_t users;
+int id_count;
+list_t *users;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,9 +49,13 @@ void *user_connect(void *)
         }
         
         ++connected_users;
-        // Add player to the user list
+        user_t new;
+        strcpy(new.name, player_name);
+        new.socket_fd = client_fd;
+        new.id = id_count++;
+        add_user(new);
 
-        printf("THE NAME IS %s..from %d bytes\n", player_name, bytes_read);
+        print_users();
     }
 
     return NULL;
@@ -63,7 +68,7 @@ void *user_disconnect(void *)
     {
         // No need for constant checking if someone is offline
         sleep(AFK_TIMEOUT);
-        list_t *current = users.next; 
+        list_t *current = users->next; 
         
         while (current != NULL)
         {
@@ -74,8 +79,7 @@ void *user_disconnect(void *)
             }
 
             // Is offline
-            
-            // REMOVE USER
+            remove_user(current->user);
             current = current->next;
         }
     }
@@ -110,15 +114,11 @@ int main(int argc, char **argv)
 
     // Create 2 threads to handle connections
     connected_users = 0;
+    id_count = 0;
     pthread_t connect_thread;
     pthread_create(&connect_thread, NULL, user_connect, NULL);
 
-    users.next = NULL;
-    user_t head;
-    strcpy(head.name, "HEAD_OF_LIST");
-    head.socket_fd = -1;
-    head.user_fd = -1;
-    users.user = head;
+    users = NULL;
 
     pthread_t disconnect_thread;
     pthread_create(&disconnect_thread, NULL, user_disconnect, 0);
@@ -129,8 +129,8 @@ int main(int argc, char **argv)
 
     }
 
-    pthread_join(user_connect, NULL);
-    pthread_join(user_disconnect, NULL);
+    pthread_join(connect_thread, NULL);
+    pthread_join(disconnect_thread, NULL);
     close(server_fd);
     unlink(system_path);
 
@@ -146,11 +146,76 @@ int main(int argc, char **argv)
 // Pings a user.. Returns true if the user pings back (is online), false if doesn't until a timeout value (offline)
 bool ping(user_t user)
 {
-    bool online = true;
+    bool online = false;
 
     // Ping
     
     // Wait for ping
 
     return online;
+}
+
+void add_user(user_t user)
+{
+    list_t *new = malloc(sizeof(list_t));
+    new->user.id = user.id;
+    new->user.socket_fd = user.socket_fd;
+    strcpy(new->user.name, user.name);
+    new->previous = NULL;
+
+    if (users == NULL)
+    {
+        new->next = NULL;
+        users = new;
+        return;
+    }
+
+    list_t *temp = users;
+    new->next = temp;
+    users = new;
+}
+
+void remove_user(user_t user)
+{
+    list_t *current = find_user(user.id);
+
+    if (current == NULL)
+    {
+        perror("find_user() tried to find an invalid id... failed to remove user: ");
+        return;
+    }
+
+    current->previous->next = current->next;
+    current->next->previous = current->previous;
+    free(current);
+}
+
+list_t *find_user(int id)
+{
+    list_t *current = users;
+
+    while (current != NULL)
+    {
+        if (current->user.id == id)
+        {
+            return current;
+        }
+
+        current = current->next;
+    }
+
+    return NULL;
+}
+
+void print_users()
+{
+    list_t *current = users;
+
+    printf("-------------------\n");
+    while (current != NULL)
+    {
+        printf("NAME: %s\nID: %d\n SOCKET: %d\n", current->user.name, current->user.id, current->user.socket_fd);
+        current = current->next;
+    }
+    printf("-------------------\n");
 }
