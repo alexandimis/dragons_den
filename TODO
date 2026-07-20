@@ -1,10 +1,14 @@
+
+
+
+
 TODO:
 	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)				(OPTIONAL)
 
 alex:
 	-Init user_t variable at user login with name, id and socket_fd (ON IT)
 
-	-Complete user connecting (adding to user list) and disconnecting (removing from user list)
+	-Complete user disconnecting (removing from user list)
 
 	-Implement event-based user input (no particular order for the players)
 
