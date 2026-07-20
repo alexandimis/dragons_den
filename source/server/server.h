@@ -6,6 +6,7 @@
 
     typedef struct {
         char name[NAME_SIZE];
+        bool online;
         int id;
         int socket_fd;
     } user_t;
@@ -21,7 +22,7 @@
     // Functions
     bool ping(user_t user);
     void add_user(user_t user);
-    void remove_user(user_t user);
+    list_t *remove_user(user_t user);
     list_t *find_user(int id);
     void print_users();
 #endif

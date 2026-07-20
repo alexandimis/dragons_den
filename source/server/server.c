@@ -17,6 +17,8 @@ int connected_users;
 int id_count;
 list_t *users;
 
+pthread_mutex_t mutex_lock;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -39,6 +41,8 @@ void *user_connect(void *)
             return NULL;
         }
 
+        pthread_mutex_lock(&mutex_lock);
+
         char player_name[NAME_SIZE];
         int bytes_read = recv(client_fd, player_name, sizeof(char) * NAME_SIZE, 0);
         if (bytes_read == -1)
@@ -50,12 +54,14 @@ void *user_connect(void *)
         
         ++connected_users;
         user_t new;
+        new.online = true;
         strcpy(new.name, player_name);
         new.socket_fd = client_fd;
         new.id = id_count++;
         add_user(new);
-
         print_users();
+
+        pthread_mutex_unlock(&mutex_lock);
     }
 
     return NULL;
@@ -67,24 +73,51 @@ void *user_disconnect(void *)
     while (1)
     {
         // No need for constant checking if someone is offline
-        sleep(AFK_TIMEOUT);
-        list_t *current = users->next; 
+        // sleep(AFK_TIMEOUT);
+
+        sleep(5);
+        printf("USERS IS %p\n", users);
+
+        if (users == NULL) { continue; } // No online users
+        list_t *current = users; 
         
         while (current != NULL)
         {
-            if (ping(current->user)) // Is online
+            // printf("IM AT %p -> %s\n", current, current->user.name);
+
+            if (current->user.online) // Is online
             {
                 current = current->next;
                 continue;
             }
 
             // Is offline
-            remove_user(current->user);
-            current = current->next;
+            pthread_mutex_lock(&mutex_lock);
+
+            user_t user_to_remove = current->user;
+            current = remove_user(user_to_remove);
+
+            pthread_mutex_unlock(&mutex_lock);
+
+            printf("I AM RETURNED %p\n", current);
+            if (current == NULL)
+            {
+                break;
+            }
         }
     }
 
     return NULL;
+}
+
+void *ping_users(void *)
+{
+    while (1)
+    {
+        // Ping every user in the list
+
+        // Listen for each users reply? If yes what should the timeout be...
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -112,17 +145,17 @@ int main(int argc, char **argv)
 
     listen(server_fd, MAX_PLAYERS);
 
-    // Create 2 threads to handle connections
+    // Create threads to handle connections
+    users = NULL;
     connected_users = 0;
     id_count = 0;
     pthread_t connect_thread;
     pthread_create(&connect_thread, NULL, user_connect, NULL);
-
-    users = NULL;
-
     pthread_t disconnect_thread;
     pthread_create(&disconnect_thread, NULL, user_disconnect, 0);
-    
+    pthread_t pinger;
+    pthread_create(&pinger, NULL, ping_users, NULL);
+
     bool running = true;
     while (running)
     {
@@ -147,7 +180,7 @@ int main(int argc, char **argv)
 bool ping(user_t user)
 {
     bool online = false;
-
+    
     // Ping
     
     // Wait for ping
@@ -175,19 +208,34 @@ void add_user(user_t user)
     users = new;
 }
 
-void remove_user(user_t user)
+// Returns the user after the removed one
+list_t *remove_user(user_t user)
 {
     list_t *current = find_user(user.id);
 
     if (current == NULL)
     {
         perror("find_user() tried to find an invalid id... failed to remove user: ");
-        return;
+        return NULL;
     }
 
-    current->previous->next = current->next;
-    current->next->previous = current->previous;
+    if (current->previous != NULL) // If it's not the first user in the list
+    {
+        current->previous->next = current->next;
+    } else
+    {
+        users = users->next;
+    }
+    
+    if (current->next != NULL) // If it's not the last user in the list
+    {
+        current->next->previous = current->previous;
+    }
+    
+    list_t *next = current->next;
+
     free(current);
+    return next;
 }
 
 list_t *find_user(int id)
