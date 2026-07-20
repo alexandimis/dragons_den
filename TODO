@@ -6,9 +6,7 @@ TODO:
 	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)				(OPTIONAL)
 
 alex:
-	-Init user_t variable at user login with name, id and socket_fd (ON IT)
-
-	-Complete user disconnecting (removing from user list)
+	-Implement user pinging. If a user is not active he is removed from the user list (but still saved on the server's user file)	
 
 	-Implement event-based user input (no particular order for the players)
 
