@@ -115,8 +115,8 @@ void *ping_users(void *)
     while (1)
     {
         // Ping every user in the list
-
         // Listen for each users reply? If yes what should the timeout be...
+
     }
 }
 
