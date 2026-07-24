@@ -4,10 +4,13 @@
 #include "random.h"
 #include "graph.h"
 #include "game.h"
+#include "client.h"
 
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
+#include <sys/socket.h>
 
 /*
  * main_menu
@@ -152,10 +155,7 @@ game_status_t game_loop(graph_t *graph, player_t *player)
 		{
 			game_action_t action = in_game_menu();
 
-			if (action == EXIT)
-			{
-				return IN_PROGRESS;
-			}
+			if (action == EXIT) { return IN_PROGRESS; }
 			else if (action == MOVE)
 			{
 				unsigned int id = 0;
@@ -210,14 +210,32 @@ game_status_t game_loop(graph_t *graph, player_t *player)
 
 game_status_t multiplayer_game_loop(player_t *player)
 {
+	player->room = malloc(sizeof(vertex_t));
+	if (player->room == NULL)
+	{
+		perror("malloc() failed: ");
+		return GAME_OVER;
+	}
+	player->room->edges = NULL;
+	
 	// Sync player data with server
+	recv(client_fd, &player->arrows, sizeof(player->arrows), 0);
+	recv(client_fd, &player->room->id, sizeof(player->room->id), 0);
+	recv(client_fd, &player->room->contents, sizeof(player->room->contents), 0);
+	print_player(*player);
+	
 	game_status_t status = IN_PROGRESS;
 
 	while (1)
 	{
-		in_game_menu();
+		// Update player to match the server
+		game_action_t action = in_game_menu();
+		send(client_fd, &action, sizeof(action), 0);
+
+		if (action == EXIT) { break; }
 	}
 
+	free(player->room);
 	return status;
 }
 
@@ -293,6 +311,15 @@ void print_ids(vertex_t room)
 	printf("\n");
 }
 
+// Prints the player's info
+void print_player(player_t player)
+{
+	printf("-------------------\n");
+	printf("NAME: %s\nARROWS: %d\n", player.name, player.arrows);
+	print_contents(player.room->contents, player);
+	printf("-------------------\n");
+}
+
 // Returns true if the dragon is lurking in a room connected with the given one
 bool dragon_check(vertex_t room)
 {
@@ -309,6 +336,31 @@ bool dragon_check(vertex_t room)
 	}
 
 	return false;
+}
+
+// Prints a rooms contents
+void print_contents(contents_t contents, player_t player)
+{
+	switch (contents)
+	{
+		case MINE:
+			printf(TRIGGERED_MINE_MSG);
+			break;;
+		case PORTAL:
+			printf(TRIGGERED_PORTAL_MSG);
+			break;
+		case DRAGON:
+			printf(ENCOUNTERED_DRAGON_MSG);
+			break;
+		case ARROW:
+			printf(FOUND_ARROW_MSG, player.arrows);
+			break;
+		case EMPTY:
+			printf(EMPTY_ROOM_MSG);
+			break;
+		default: // Non-reachable (on normal behavior)
+			break;
+	}
 }
 
 // Returs true if there is a portal in a room connected wutg the given one

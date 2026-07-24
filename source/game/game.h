@@ -22,7 +22,8 @@ typedef enum {
 typedef enum {
     EXIT, /* stop/interrupt the current game */
 	MOVE, /* move to a neighboring room */
-	SHOOT /* shoot an arrow towards a neighboring room */
+	SHOOT, /* shoot an arrow towards a neighboring room */
+	NOTHING // Do nothing
 } game_action_t;
                                                                                 
 typedef struct {
@@ -30,7 +31,6 @@ typedef struct {
 	unsigned int arrows;
 	vertex_t *room;  /* player's location */
 } player_t;
-
 
 /*
  * main_menu
@@ -64,5 +64,7 @@ void mine_activation(graph_t *graph, player_t *player);
 void portal_activation(graph_t *graph, player_t *player);
 void found_arrow(graph_t *graph, player_t *player);
 void print_ids(vertex_t room);
+void print_player(player_t player);
+void print_contents(contents_t contents, player_t player);
 bool dragon_check(vertex_t room);
 bool portal_check(vertex_t room);
