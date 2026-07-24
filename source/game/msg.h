@@ -119,6 +119,9 @@
 #define ENCOUNTERED_DRAGON_MSG \
 "\nThere's a dragon in the room! Back up! Back up! ... Too late ... RIP.\n"
 
+#define EMPTY_ROOM_MSG \
+"\nThere's nothing in the room.. you can hear your heart beat.\n"
+
 /* ======================
  * Neighboring room info
  * ======================
