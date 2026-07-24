@@ -3,12 +3,13 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "game.h"
 #include "client.h"
 
-int client_fd;
 struct sockaddr_un addr;
+int client_fd;
 
 // Connect to the server, and init the player struct
 // On error player.arrows will be -1
@@ -34,7 +35,6 @@ player_t server_connect(char *socket_path, player_t player)
     }
 
     // Send player name to the server
-    printf("PLAYER NAME IS %s\n", player.name);
     send(client_fd, &player.name, sizeof(char) * NAME_SIZE, 0);
     player.arrows = 0;
     strcpy(player.name, "alex");
