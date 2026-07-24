@@ -2,7 +2,7 @@ CFLAGS = -Wall -g -fsanitize=address # -D DEBUG
 
 play: fileio.o game.o graph.o main.o random.o util.o client.o
 	gcc $(CFLAGS) fileio.o game.o graph.o main.o random.o util.o client.o -L. -lhw3 -o play
-	rm -rf *.o
+	mv *.o ../objects
 	mv play ../../bin
 
 fileio.o: fileio.c fileio.h

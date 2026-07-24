@@ -1,8 +1,10 @@
 CFLAGS = -Wall -g -fsanitize=address -pthread # -D DEBUG
 
 run: server.o
-	gcc $(CFLAGS) server.o -o run
-	rm -rf *.o
+	cp ../game/libhw3.* .
+	gcc $(CFLAGS) server.o ../objects/random.o -L. -lhw3 -o run
+	mv *.o ../objects
+	rm -rf libhw3.*
 
 server.o: server.c server.h
 	gcc $(CFLAGS) -c server.c
