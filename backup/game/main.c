@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include "graph.h"
 #include "game.h"
@@ -10,7 +12,8 @@
 #include "libhw3.h"
 #include "util.h"
 #include "fileio.h"
-#include "hw3.h"
+#include "main.h"
+#include "client.h"
 
 int main (int argc, char *argv[]) 
 {
@@ -32,38 +35,79 @@ int main (int argc, char *argv[])
 	// there's no active game initially
 	game_status_t status = GAME_OVER;
 
-	// Initializations
+	// Player init				*NOTE*: KEEP THIS HERE FOR THE NAME INIT
 	player_t player = player_init();
-	char filename[NAME_SIZE * 2];
-    snprintf(filename, sizeof(filename), "%s.sav", player.name);
-	graph_t *gameGraph = NULL;
 
-	// Main loop
-	bool running = true;
-	do {
-		action = main_menu();
-		switch (action) 
+	// Chose game mode
+	char gamemode = 'a';
+	while (1)
+	{
+		printf(ASK_GAME_MODE);
+		scanf(" %c", &gamemode);
+		
+		if ((gamemode != 'y') && (gamemode != 'n'))
 		{
-			case NEW:
-				new(&status, &player, &gameGraph, level_factor);
-				break;
-			case LOAD:
-				load(&status, filename, &gameGraph, &player);
-				break;
-			case SAVE:
-				save(status, filename, gameGraph, player);
-				break;
-			case CONTINUE:
-				continue_game(&status, gameGraph, &player);
-				break;
-			case HELP:
-				printf(INSTRUCTIONS_MSG);
-				break;
-			case QUIT:
-				quit(status, gameGraph, player, &running);
-				break;
+			printf(WRONG_SELECTION_MSG);
+			continue;
 		}
-	} while (running);
+		break;
+	}	
+	
+	if (gamemode == 'y') // Multiplayer
+	{
+		// Connect to the server
+		char *socket_path = "/tmp/dragons_den.sock";
+		
+		player = server_connect(socket_path, player);
+		if (player.arrows == -1)
+		{
+			perror("server_connect() failed: ");
+			printf(MULTPIPLAYER_JOIN_FAIL);
+			return -1;
+		}
+
+		//Game loop imidiatelly.. no menu loop
+		status = multiplayer_game_loop(&player);
+		
+		// If status is GAME OVER the player died
+		if (status == GAME_OVER)
+		{
+			// Handle death message and options
+		}
+	} else if (gamemode == 'n') // Singleplayer
+	{
+		// Initializations
+		char filename[NAME_SIZE * 2];
+		snprintf(filename, sizeof(filename), "%s.sav", player.name);
+		graph_t *gameGraph = NULL;
+
+		// Main loop
+		bool running = true;
+		do {
+			action = main_menu();
+			switch (action) 
+			{
+				case NEW:
+					new(&status, &player, &gameGraph, level_factor);
+					break;
+				case LOAD:
+					load(&status, filename, &gameGraph, &player);
+					break;
+				case SAVE:
+					save(status, filename, gameGraph, player);
+					break;
+				case CONTINUE:
+					continue_game(&status, gameGraph, &player);
+					break;
+				case HELP:
+					printf(INSTRUCTIONS_MSG);
+					break;
+				case QUIT:
+					quit(status, gameGraph, player, &running);
+					break;
+			}
+		} while (running);
+	}
 
 	return 0;
 }

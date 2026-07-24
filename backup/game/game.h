@@ -22,7 +22,8 @@ typedef enum {
 typedef enum {
     EXIT, /* stop/interrupt the current game */
 	MOVE, /* move to a neighboring room */
-	SHOOT /* shoot an arrow towards a neighboring room */
+	SHOOT, /* shoot an arrow towards a neighboring room */
+	NOTHING // Do nothing
 } game_action_t;
                                                                                 
 typedef struct {
@@ -52,6 +53,7 @@ game_action_t in_game_menu();
 player_t player_init();
 graph_t *create_game(int levelFactor, player_t *player);
 game_status_t game_loop(graph_t *graph, player_t *player);
+game_status_t multiplayer_game_loop(player_t *player);
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////

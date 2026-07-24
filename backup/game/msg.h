@@ -174,4 +174,10 @@
 #define SAVE_OK_MSG \
 "\nGame saved.\n"
 
+#define ASK_GAME_MODE \
+"\n\tWould you like to join the multiplayer realm? (y/n) "
+
+#define MULTPIPLAYER_JOIN_FAIL \
+"\n\tCouldn't find a portal to that realm..\n"
+
 #endif
