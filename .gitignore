@@ -3,6 +3,6 @@
 *.vscode
 
 bin/
-source/server/bin
+source/server/run
 source/objects
 
