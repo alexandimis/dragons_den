@@ -17,6 +17,7 @@
 int server_fd;
 struct sockaddr_un addr;
 pthread_mutex_t mutex_lock;
+graph_t *game_map;
 
 user_t users[MAX_PLAYERS];
 int connected_users;
@@ -77,6 +78,7 @@ void *user_connect(void *)
         new.id = -1;
         new.socket_fd = client_fd;
         new.action = NOTHING;
+        new.action_towards = 0;
 
         if (user_exists_database()) // Currently this will never go
         {
@@ -84,9 +86,7 @@ void *user_connect(void *)
         } else
         {
             new.player.arrows = INIT_ARROWS;
-            new.player.room = malloc(sizeof(vertex_t));
-            new.player.room->contents = EMPTY;
-            new.player.room->id = 0;
+            new.player.room = game_map->vertices[0]; // Spawn new players in the first room
         }
 
         send(client_fd, &new.player.arrows, sizeof(new.player.arrows), 0);
@@ -94,8 +94,8 @@ void *user_connect(void *)
         send(client_fd, &new.player.room->contents, sizeof(new.player.room->contents), 0);
         
         add_user(new);
+        update_needed = true;
         pthread_mutex_unlock(&mutex_lock);
-        print_users();
     }
 
     return NULL;
@@ -108,13 +108,14 @@ void *user_disconnect(void *)
     while (1)
     {
         sleep(1);
-        print_users();
-        
+        pthread_mutex_lock(&mutex_lock);
         for (int i = 0; i < MAX_PLAYERS; ++i)
         {
             if ((users[i].online) || (users[i].id < 0)) { continue; }
             if (remove_user(users[i]) == -1) { perror("remove_user() failed: "); }
+            else { update_needed = true; }
         }
+        pthread_mutex_unlock(&mutex_lock);
     }
 
     return NULL;
@@ -144,13 +145,44 @@ void *check_user_input(void *)
         for (int i = 0; i < MAX_PLAYERS; ++i)
         {
             game_action_t action;
-
+            
             if (recv(users[i].socket_fd, &action, sizeof(action), 0) > 0) // Player wants to do an action
             {
                 print_action(action);
                 update_needed = true;
 
-                if (action == EXIT) { users[i].online = false; }
+                if (action == EXIT)
+                {
+                    users[i].online = false;
+                    users[i].action = EXIT;
+                }
+                else if (action == MOVE)
+                {
+                    unsigned int id = 0;
+
+                    if (recv(users[i].socket_fd, &id, sizeof(id), 0) > 0) // Player specified where to move
+                    {
+                        users[i].action = MOVE;
+                        printf("TO %u\n", id);
+                    } else
+                    {
+                        printf(UNSPECIFIED_ROOM_ID);
+                        update_needed = false;
+                    }
+                } else if (action == SHOOT)
+                {
+                    unsigned int id = 0;
+
+                    if (recv(users[i].socket_fd, &id, sizeof(id), 0) > 0) // Player specified where to shoot
+                    {
+                        users[i].action = SHOOT;
+                        printf("TO %u\n", id);
+                    } else
+                    {
+                        printf(UNSPECIFIED_ROOM_ID);
+                        update_needed = false;
+                    }
+                }   
             }
         }
         pthread_mutex_unlock(&mutex_lock);
@@ -172,21 +204,21 @@ int main(int argc, char **argv)
     {
         users[i].id = -2;
         users[i].online = false;
-        users[i].socket_fd = -2;
+        users[i].socket_fd = -2; 
     }
 
     // Game graph init
-    graph_t *game_graph = NULL;
+    game_map = NULL;
     while (1)
     {
         printf("Create new map (N) or load an existing one (L): ");
         char map_creation = 'a';
         scanf(" %c", &map_creation);
-        if ((map_creation == 'N') || (map_creation == 'n')) { game_graph = create_game_graph(LEVEL_FACTOR); break; } 
+        if ((map_creation == 'N') || (map_creation == 'n')) { game_map = create_game_graph(LEVEL_FACTOR); break; } 
         else if ((map_creation == 'L') || (map_creation == 'l')) { /* LOAD GRAPH FROM FILE */ break; }
         else { printf(WRONG_SELECTION_MSG); }
     }
-    print_graph(game_graph);
+    print_graph(game_map);
 
     // Socket fd initialization
     server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -219,12 +251,22 @@ int main(int argc, char **argv)
         // Update game state
         if (update_needed)
         {
-            pthread_mutex_lock(&mutex_lock);
-            printf("UPDATING!\n");
+            update_game_state();
+
+            #ifdef PRINT_MAP
+                pthread_mutex_lock(&mutex_lock);
+                print_graph(game_map);
+                pthread_mutex_unlock(&mutex_lock);
+            #endif
+
+            #ifdef PRINT_USERS
+                print_users();
+            #endif
+
             update_needed = false;
-            pthread_mutex_unlock(&mutex_lock);
+            
+            // Send players new game state
         }
-        // Send players new game state
     }
 
     // Wait for the threads to finish
@@ -330,6 +372,7 @@ void print_users()
             print_action(users[i].action);
         }
         else { printf("OFFLINE\n"); }
+        printf("ROOM: %d\n", users[i].player.room->id);
     }
     printf("-------------------\n");
     pthread_mutex_unlock(&mutex_lock);
@@ -365,9 +408,25 @@ bool user_exists_database()
     return false;
 }
 
+// Updates the game state based on each persons action
 void update_game_state()
 {
-    if (!update_needed) { return; }
+    pthread_mutex_lock(&mutex_lock);
+    for (int i = 0; i < MAX_PLAYERS; ++i)
+    {
+        if (users[i].action == NOTHING) { continue; }
 
-
+        if (users[i].action == MOVE)
+        {
+            if (!neighbour_found(*users[i].player.room, users[i].action_towards))
+            {
+                printf(NO_PASSAGE_MSG);
+                continue;
+            }
+        } else if (users[i].action == SHOOT)
+        {
+            // Shoot to specified room...
+        }
+    }
+    pthread_mutex_unlock(&mutex_lock);
 }

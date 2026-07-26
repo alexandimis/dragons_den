@@ -11,6 +11,7 @@
         int id; // Set to -1 to indicate a NOT YET ADDED user / Set to -2 to indicate an empty array spot
         int socket_fd;
         game_action_t action;
+        unsigned int action_towards;
     } user_t;
 
     typedef struct list_t list_t;
