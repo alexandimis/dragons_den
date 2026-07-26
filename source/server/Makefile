@@ -1,4 +1,4 @@
-CFLAGS = -Wall -g -fsanitize=address -pthread # -D DEBUG
+CFLAGS = -Wall -g -fsanitize=address -pthread -D PRINT_MAP -D PRINT_USERS # -D DEBUG
 
 run: server.o
 	cp ../game/libhw3.* .
