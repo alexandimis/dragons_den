@@ -230,9 +230,16 @@ game_status_t multiplayer_game_loop(player_t *player)
 	{
 		// Update player to match the server
 		game_action_t action = in_game_menu();
+		if (action == EXIT)
+		{
+			send(client_fd, &action, sizeof(action), 0);
+			break;
+		}
+		
+		unsigned int id = 0;
+		scanf(" %d", &id);
 		send(client_fd, &action, sizeof(action), 0);
-
-		if (action == EXIT) { break; }
+		send(client_fd, &id, sizeof(id), 0);
 	}
 
 	free(player->room);
