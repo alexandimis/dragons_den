@@ -86,6 +86,9 @@
 #define WRONG_SELECTION_MSG \
 "\nUnrecognized selection.\n"
 
+#define UNSPECIFIED_ROOM_ID \
+"\nYou must specify an id for that.\n"
+
 #define CONFIRM_NEW_GAME_MSG \
 "\nA game is currently in progress."\
 " Are you sure you want to start a different game? (y/n) "
