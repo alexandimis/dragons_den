@@ -5,6 +5,8 @@ TODO:
 	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)				(OPTIONAL)
 
 alex:
+	-Notify users who are trying to connect that the server is full (if it is...)
+
 	-Implement user pinging. If a user is not active he is removed from the user list (but still saved on the server's user file)
 
 	-Implement server side input handling
