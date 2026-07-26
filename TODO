@@ -1,6 +1,11 @@
 BUGS:
 	-Players can shoot as many shots as chars send() can send
 
+	-Possible race condition when the player sends an action (MOVE OR SHOOT) and after that the id for the room. The server checks with two non blocking recv calls
+	 .. if the server checks with recv before the second send it will move on and produce an "UNSPECIFIED ID" error
+
+	-If player terminates the session NON-regurarly.. (idk how its spelled), the server will keep him "connected" (no pinging yet)
+
 TODO:
 	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)				(OPTIONAL)
 
