@@ -8,6 +8,15 @@ typedef enum {
 	EMPTY, PORTAL, MINE, ARROW, DRAGON
 } contents_t;
 
+typedef enum {
+	NO_ATTACK, SHOOTING_ARROW
+} attacks_t;
+
+typedef struct {
+	attacks_t attack;
+	unsigned int id;
+} room_attack_t;
+
 struct _edge;
 
 typedef struct  _vertex {
