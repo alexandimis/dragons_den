@@ -1,13 +1,13 @@
-
-
-
+BUGS:
+	-Players can shoot as many shots as chars send() can send
 
 TODO:
 	-Update the syntax of every variable from oldSyntax to new_syntax (ctrl+shift+h	to find all appearences (in all files) of a string, and change it like that)				(OPTIONAL)
 
 alex:
-	-Implement user pinging. If a user is not active he is removed from the user list (but still saved on the server's user file)	
+	-Implement user pinging. If a user is not active he is removed from the user list (but still saved on the server's user file)
 
-	-Change the user list to a simple array of users (We know beforehand MAX_PLAYERS to join)
+	-Implement server side input handling
+
 maria:
 
