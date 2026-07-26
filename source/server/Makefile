@@ -2,7 +2,7 @@ CFLAGS = -Wall -g -fsanitize=address -pthread -D PRINT_MAP -D PRINT_USERS # -D D
 
 run: server.o
 	cp ../game/libhw3.* .
-	gcc $(CFLAGS) server.o ../objects/random.o -L. -lhw3 -o run
+	gcc $(CFLAGS) server.o ../objects/random.o ../objects/util.o ../objects/graph.o -L. -lhw3 -o run
 	mv *.o ../objects
 	rm -rf libhw3.*
 
