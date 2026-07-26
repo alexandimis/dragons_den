@@ -8,7 +8,7 @@
     typedef struct {
         player_t player;
         bool online; // Whenever a user goes offline, "online" becomes false
-        int id;
+        int id; // Set to -1 to indicate a NOT YET ADDED user / Set to -2 to indicate an empty array spot
         int socket_fd;
         game_action_t action;
     } user_t;
@@ -23,10 +23,12 @@
 
     // Functions
     void add_user(user_t user);
-    list_t *remove_user(user_t user);
-    list_t *find_user(int id);
+    int remove_user(user_t user);
+    int get_user_pos(user_t user, bool *found);
+
     void print_users();
     void print_action(game_action_t action);
+    
     bool user_exists_database();
 
     void update_game_state();

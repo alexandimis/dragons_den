@@ -16,12 +16,13 @@
 // Global variables
 int server_fd;
 struct sockaddr_un addr;
+pthread_mutex_t mutex_lock;
+
+user_t users[MAX_PLAYERS];
 int connected_users;
-int id_count;
-list_t *users;
+
 bool update_needed = false;
 
-pthread_mutex_t mutex_lock;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,12 +70,13 @@ void *user_connect(void *)
             return NULL;
         }
         
-        ++connected_users;
         user_t new;
-        new.socket_fd = client_fd;
-        new.online = true;
         strcpy(new.player.name, player_name);
-        new.id = id_count++;
+
+        new.online = true;
+        new.id = -1;
+        new.socket_fd = client_fd;
+        new.action = NOTHING;
 
         if (user_exists_database()) // Currently this will never go
         {
@@ -84,17 +86,16 @@ void *user_connect(void *)
             new.player.arrows = INIT_ARROWS;
             new.player.room = malloc(sizeof(vertex_t));
             new.player.room->contents = EMPTY;
-            new.player.room->id = new.id;
+            new.player.room->id = 0;
         }
 
         send(client_fd, &new.player.arrows, sizeof(new.player.arrows), 0);
         send(client_fd, &new.player.room->id, sizeof(new.player.room->id), 0);
         send(client_fd, &new.player.room->contents, sizeof(new.player.room->contents), 0);
-
+        
         add_user(new);
-        print_users();
-
         pthread_mutex_unlock(&mutex_lock);
+        print_users();
     }
 
     return NULL;
@@ -108,21 +109,11 @@ void *user_disconnect(void *)
     {
         sleep(1);
         print_users();
-        printf("Starting cleanup...\n");
-        list_t *current = users;
         
-        while (current != NULL)
+        for (int i = 0; i < MAX_PLAYERS; ++i)
         {
-            if (!current->user.online)
-            {
-                pthread_mutex_lock(&mutex_lock);
-                current = remove_user(current->user);
-                --connected_users;
-                pthread_mutex_unlock(&mutex_lock);
-            }
-
-            if (current == NULL) { break; }
-            current = current->next;
+            if ((users[i].online) || (users[i].id < 0)) { continue; }
+            if (remove_user(users[i]) == -1) { perror("remove_user() failed: "); }
         }
     }
 
@@ -147,26 +138,20 @@ void *check_user_input(void *)
 {
     while (1)
     {
-        sleep(1);
-        print_users();
         // Poll for input
         pthread_mutex_lock(&mutex_lock);
-        list_t *current = users;
         
-
-        while (current != NULL)
+        for (int i = 0; i < MAX_PLAYERS; ++i)
         {
             game_action_t action;
 
-            if (recv(current->user.socket_fd, &action, sizeof(action), 0) > 0)
+            if (recv(users[i].socket_fd, &action, sizeof(action), 0) > 0) // Player wants to do an action
             {
                 print_action(action);
                 update_needed = true;
 
-                if (action == EXIT) { current->user.online = false; }
+                if (action == EXIT) { users[i].online = false; }
             }
-
-            current = current->next;
         }
         pthread_mutex_unlock(&mutex_lock);
     }
@@ -182,6 +167,14 @@ void *check_user_input(void *)
 
 int main(int argc, char **argv)
 {
+    // User array init
+    for (int i = 0; i < MAX_PLAYERS; ++i)
+    {
+        users[i].id = -2;
+        users[i].online = false;
+        users[i].socket_fd = -2;
+    }
+
     // Game graph init
     graph_t *game_graph = NULL;
     while (1)
@@ -189,34 +182,28 @@ int main(int argc, char **argv)
         printf("Create new map (N) or load an existing one (L): ");
         char map_creation = 'a';
         scanf(" %c", &map_creation);
-        if (map_creation == 'N') { game_graph = create_game_graph(LEVEL_FACTOR); break; } 
-        else if (map_creation == 'L') { /* LOAD GRAPH FROM FILE */ break; }
+        if ((map_creation == 'N') || (map_creation == 'n')) { game_graph = create_game_graph(LEVEL_FACTOR); break; } 
+        else if ((map_creation == 'L') || (map_creation == 'l')) { /* LOAD GRAPH FROM FILE */ break; }
         else { printf(WRONG_SELECTION_MSG); }
     }
-
     print_graph(game_graph);
 
     // Socket fd initialization
     server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (server_fd == -1) { return -1; }
-
     char *system_path = "/tmp/dragons_den.sock";
     addr.sun_family = AF_UNIX;
     strcpy(addr.sun_path, system_path);
-    unlink(system_path);
-    
+    unlink(system_path); // If the socket already exists... start fresh (remove it)
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
     {
         perror("bind() failed: ");
         return -1;
     }
-
     listen(server_fd, MAX_PLAYERS);
 
     // Thread creations
-    users = NULL;
     connected_users = 0;
-    id_count = 0;
     pthread_t connect_thread; // User connection
     pthread_create(&connect_thread, NULL, user_connect, NULL);
     pthread_t disconnect_thread; // Offline user removal
@@ -257,94 +244,98 @@ int main(int argc, char **argv)
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Adds a user in the array's first available spot
+// If no space is available it simply returns
 void add_user(user_t user)
 {
-    // Struct initialization
-    list_t *new = malloc(sizeof(list_t));
-    if (new == NULL) 
+    bool found = true;
+    int position = get_user_pos(user, &found);
+    if (position == -1) // Error
     {
-        perror("malloc() failed: ");
+        perror("get_user_pos() failed: ");
+        return;
+    } else if (found == true) // User FOUND.. don't ask why
+    {
+        perror("add_user() tried to add an existing user: ");
         return;
     }
 
-    new->user.id = user.id;
-    new->user.socket_fd = user.socket_fd;
-    new->user.online = user.online;
-    new->user.action = NOTHING;
-    strcpy(new->user.player.name, user.player.name);
-    new->previous = NULL;
-
-    if (users == NULL)
-    {
-        new->next = NULL;
-        users = new;
-        return;
-    }
-
-    list_t *temp = users;
-    new->next = temp;
-    users = new;
+    user.id = position;
+    users[position] = user;
+    ++connected_users;
 }
 
-// Returns the user after the removed one
-list_t *remove_user(user_t user)
+// Removes a user from the array
+// On error it simply returns -1
+int remove_user(user_t user)
 {
+    bool found = false;
+    int position = get_user_pos(user, &found);
+    if (position == -1) // Error
+    {
+        perror("get_user_pos() failed: ");
+        return -1;
+    } else if (found == false) // User NOT FOUND.. don't ask why
+    {
+        perror("add_user() tried to remove a non-existing user: ");
+        return -1;
+    }
+
     printf("REMOVING %s...\n", user.player.name);
-    list_t *current = find_user(user.id);
-
-    if (current == NULL)
-    {
-        perror("find_user() tried to find an invalid id... failed to remove user: ");
-        return NULL;
-    }
-    
-    // If it's the first user in the list
-    if (current->previous == NULL) { users = users->next; }
-    else { current->previous->next = current->next; }
-    
-    // If it's not the last user in the list
-    if (current->next != NULL) { current->next->previous = current->previous; }
-    
-    list_t *next = current->next;
-
-    free(current);
-    return next;
+    users[position].id = -2;
+    --connected_users;
+    return 0;
 }
 
-list_t *find_user(int id)
+// Returns the users position in the array, if the user is not in the array
+// returns the first array position found for insertion
+// *NOTE* Adding a user with socket_fd -2 may cause undefined behavior
+//
+// Returns -1 on error
+int get_user_pos(user_t user, bool *found)
 {
-    list_t *current = users;
-
-    while (current != NULL)
+    // Check if the user is in the array
+    for (int i = 0; i < MAX_PLAYERS; ++i)
     {
-        if (current->user.id == id) { return current; }
-        current = current->next;
+        if (user.id == users[i].id)
+        {
+            *found = true;
+            return i;
+        }
     }
 
-    return NULL;
+    // If the user is not found, return the first available position
+    *found = false;
+    for (int i = 0; i < MAX_PLAYERS; ++i)
+    {
+        if (users[i].id == -2) { return i; }
+    }
+
+    return -1; // Something went wrong
 }
 
+// Prints all active users
 void print_users()
 {
-    list_t *current = users;
-
-    printf("-------------------\n");
-    while (current != NULL)
+    pthread_mutex_lock(&mutex_lock);
+    printf("-------------------");
+    for (int i = 0; i < MAX_PLAYERS; ++i)
     {
-        printf("printing %p and %p\n", current, current->next);
-        printf("NAME: %s\nID: %d\nSOCKET: %d\nSTATUS: ", current->user.player.name, current->user.id, current->user.socket_fd);
-        if (current->user.online)
+        if (users[i].id < 0) { continue; } // Not an active user
+
+        printf("\nNAME: %s\nID: %d\nSOCKET: %d\nSTATUS: ", users[i].player.name, users[i].id, users[i].socket_fd);
+        if (users[i].online)
         {
             printf("ONLINE\nACTION: ");
-            print_action(current->user.action);
+            print_action(users[i].action);
         }
         else { printf("OFFLINE\n"); }
-        
-        current = current->next;
     }
     printf("-------------------\n");
+    pthread_mutex_unlock(&mutex_lock);
 }
 
+// Prints the action passed to the function
 void print_action(game_action_t action)
 {
     switch (action)
@@ -366,6 +357,7 @@ void print_action(game_action_t action)
     }
 }
 
+// Checks if a user exists in the server's database
 bool user_exists_database()
 {
     // Search the database for that user (by name?)
@@ -377,12 +369,5 @@ void update_game_state()
 {
     if (!update_needed) { return; }
 
-    list_t *current = users;
 
-    while (current != NULL)
-    {
-
-
-        current = current->next;
-    }
 }
