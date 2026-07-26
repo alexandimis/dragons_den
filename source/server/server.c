@@ -11,6 +11,7 @@
 #include "../game/game.h"
 #include "../game/libhw3.h"
 #include "../game/msg.h"
+#include "../game/graph.h"
 #include "server.h"
 
 // Global variables
@@ -20,6 +21,7 @@ pthread_mutex_t mutex_lock;
 graph_t *game_map;
 
 user_t users[MAX_PLAYERS];
+room_attack_t room_attack[MAX_PLAYERS];
 int connected_users;
 
 bool update_needed = false;
@@ -163,6 +165,7 @@ void *check_user_input(void *)
                     if (recv(users[i].socket_fd, &id, sizeof(id), 0) > 0) // Player specified where to move
                     {
                         users[i].action = MOVE;
+                        users[i].action_towards = id;
                         printf("TO %u\n", id);
                     } else
                     {
@@ -176,6 +179,7 @@ void *check_user_input(void *)
                     if (recv(users[i].socket_fd, &id, sizeof(id), 0) > 0) // Player specified where to shoot
                     {
                         users[i].action = SHOOT;
+                        users[i].action_towards = id;
                         printf("TO %u\n", id);
                     } else
                     {
@@ -199,12 +203,14 @@ void *check_user_input(void *)
 
 int main(int argc, char **argv)
 {
-    // User array init
+    // User array and attack init
     for (int i = 0; i < MAX_PLAYERS; ++i)
     {
         users[i].id = -2;
         users[i].online = false;
-        users[i].socket_fd = -2; 
+        users[i].socket_fd = -2;
+        room_attack[i].attack = EMPTY;
+        room_attack[i].id = 0;
     }
 
     // Game graph init
@@ -263,7 +269,7 @@ int main(int argc, char **argv)
                 print_users();
             #endif
 
-            update_needed = false;
+            
             
             // Send players new game state
         }
@@ -370,6 +376,7 @@ void print_users()
         {
             printf("ONLINE\nACTION: ");
             print_action(users[i].action);
+            printf("ACTION TOWARDS: %u\n", users[i].action_towards);
         }
         else { printf("OFFLINE\n"); }
         printf("ROOM: %d\n", users[i].player.room->id);
@@ -412,21 +419,57 @@ bool user_exists_database()
 void update_game_state()
 {
     pthread_mutex_lock(&mutex_lock);
+
+    // Update every ongoing action
     for (int i = 0; i < MAX_PLAYERS; ++i)
     {
         if (users[i].action == NOTHING) { continue; }
 
+        // printf("%d\n", *users[i].player.room->attack_contents);
+
         if (users[i].action == MOVE)
+        {
+            if (!neighbour_found(*users[i].player.room, users[i].action_towards))
+            {
+                printf("Compared %u with %u from %s ", users[i].player.room->id, users[i].action_towards, users[i].player.name);
+                printf(NO_PASSAGE_MSG);
+                continue;
+            }
+
+            users[i].player.room = get_room(game_map, users[i].action_towards);
+        } else if (users[i].action == SHOOT)
         {
             if (!neighbour_found(*users[i].player.room, users[i].action_towards))
             {
                 printf(NO_PASSAGE_MSG);
                 continue;
             }
-        } else if (users[i].action == SHOOT)
-        {
-            // Shoot to specified room...
+
+            room_attack[i].id = users[i].action_towards;
+            room_attack[i].attack = SHOOTING_ARROW;
         }
+
+        users[i].action = NOTHING;
+    }
+
+    // Check the outcome of the previous loop
+    for (int i = 0; i < MAX_PLAYERS; ++i)
+    {
+        for (int j = 0; j < MAX_PLAYERS; ++j)
+        {
+            if (room_attack[j].id == users[i].player.room->id) // If the player is in the same room with an attack
+            {
+                printf("%s was hit with SHOOTING ARROW\n", users[i].player.name);
+
+                // Remove the attack
+                room_attack[j].attack = NO_ATTACK;
+                room_attack[j].id = 0;
+            }
+        }
+
+        break;
     }
     pthread_mutex_unlock(&mutex_lock);
+
+    update_needed = false;
 }
