@@ -18,5 +18,4 @@ alex:
 
 	-Change the room attack structure. Current -> an array of which room has what attack. Future-> the vertex_t should have an extra contents page with attack types (rn it's producing errors because of grap creation i think)
 
-maria:
-
+	-Make users have their unique id_key
