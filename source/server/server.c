@@ -14,10 +14,19 @@
 #include "../game/graph.h"
 #include "server.h"
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Global variables
 int server_fd;
 struct sockaddr_un addr;
+
 pthread_mutex_t mutex_lock;
+pthread_mutex_t user_array_lock;
+
 graph_t *game_map;
 
 user_t users[MAX_PLAYERS];
@@ -25,7 +34,6 @@ room_attack_t room_attack[MAX_PLAYERS];
 int connected_users;
 
 bool update_needed = false;
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,84 +48,83 @@ void *user_connect(void *)
 {
     socklen_t addr_len = sizeof(addr);
 
-    while (1)
-    {
-        if (connected_users >= MAX_PLAYERS)
-        {
+    while (1) {
+        // If lobby is full, wait 1s
+        if (connected_users >= MAX_PLAYERS) {
             sleep(1);
             continue;
         }
         
         int client_fd = accept(server_fd, (struct sockaddr *)&addr, &addr_len);
-        if (client_fd == -1)
-        {
+        if (client_fd == -1) { 
             perror("accept() failed: ");
             return NULL;
         }
 
         // Set the client socket to NON_BLOCKING (server doesn't wait for data that is not there)
-        if(fcntl(client_fd, F_SETFL, fcntl(client_fd, F_GETFL) | O_NONBLOCK) < 0)
-        {
+        if(fcntl(client_fd, F_SETFL, fcntl(client_fd, F_GETFL) | O_NONBLOCK) < 0) {
             perror("fcntl() failed: ");
             continue;
         }
 
-        pthread_mutex_lock(&mutex_lock);
+        pthread_mutex_lock(&user_array_lock);
+            char player_name[NAME_SIZE];
+            int bytes_read = recv(client_fd, player_name, sizeof(char) * NAME_SIZE, 0);
+            if (bytes_read == -1) {
+                perror("recv() failed: ");
+                close(client_fd);
+                return NULL;
+            }
+            
+            user_t new;
+            strcpy(new.player.name, player_name);
 
-        char player_name[NAME_SIZE];
-        int bytes_read = recv(client_fd, player_name, sizeof(char) * NAME_SIZE, 0);
-        if (bytes_read == -1)
-        {
-            perror("recv() failed: ");
-            close(client_fd);
-            return NULL;
-        }
-        
-        user_t new;
-        strcpy(new.player.name, player_name);
+            new.online = true;
+            new.id = -1;
+            new.socket_fd = client_fd;
+            new.action = NOTHING;
 
-        new.online = true;
-        new.id = -1;
-        new.socket_fd = client_fd;
-        new.action = NOTHING;
-        new.action_towards = 0;
+            if (user_exists_database()) { // Currently this will never go
+                // Handle that
+            } else {
+                new.player.arrows = INIT_ARROWS;
+                new.player.room = game_map->vertices[0]; // Spawn new players in the first room
+            }
 
-        if (user_exists_database()) // Currently this will never go
-        {
-            // Handle that
-        } else
-        {
-            new.player.arrows = INIT_ARROWS;
-            new.player.room = game_map->vertices[0]; // Spawn new players in the first room
-        }
+            send(client_fd, &new.player.arrows, sizeof(new.player.arrows), 0);
+            send(client_fd, &new.player.room->id, sizeof(new.player.room->id), 0);
+            send(client_fd, &new.player.room->contents, sizeof(new.player.room->contents), 0);
+            
+            add_user(new);
 
-        send(client_fd, &new.player.arrows, sizeof(new.player.arrows), 0);
-        send(client_fd, &new.player.room->id, sizeof(new.player.room->id), 0);
-        send(client_fd, &new.player.room->contents, sizeof(new.player.room->contents), 0);
-        
-        add_user(new);
-        update_needed = true;
-        pthread_mutex_unlock(&mutex_lock);
+            // NOTE: access the variable ONLY within mutex_lock(&user_array_lock)
+            update_needed = true;
+        pthread_mutex_unlock(&user_array_lock);
+
+        sleep(1);
     }
 
     return NULL;
 }
 
-// Every 5 seconds it scans the user list for offline users,
+// Every second it scans the user list for offline users,
 // if a user is offline he gets removed from the user list
 void *user_disconnect(void *)
 {
-    while (1)
-    {
+    while (1) {
+        pthread_mutex_lock(&user_array_lock);
+            for (int i = 0; i < MAX_PLAYERS; ++i) {
+                if ((users[i].online) || (users[i].id < 0)) {
+                    continue;
+                } else if (remove_user(users[i]) == -1) {
+                    perror("remove_user() failed: ");
+                } else {
+                    update_needed = true;               // I don't fucking know why it's here
+                }
+            }
+        pthread_mutex_unlock(&user_array_lock);
+        
         sleep(1);
-        pthread_mutex_lock(&mutex_lock);
-        for (int i = 0; i < MAX_PLAYERS; ++i)
-        {
-            if ((users[i].online) || (users[i].id < 0)) { continue; }
-            if (remove_user(users[i]) == -1) { perror("remove_user() failed: "); }
-            else { update_needed = true; }
-        }
-        pthread_mutex_unlock(&mutex_lock);
     }
 
     return NULL;
@@ -127,8 +134,7 @@ void *user_disconnect(void *)
 // offline
 void *ping_listen(void *)
 {
-    // while (1)
-    // {
+    // while (1) {
     //     // Listen for each users reply? If yes what should the timeout be...
     //     sleep(5);
     //     print_users();
@@ -139,8 +145,7 @@ void *ping_listen(void *)
 
 void *check_user_input(void *)
 {
-    while (1)
-    {
+    while (1) {
         // Poll for input
         pthread_mutex_lock(&mutex_lock);
         
@@ -258,6 +263,8 @@ int main(int argc, char **argv)
         if (update_needed)
         {
             update_game_state();
+            
+            // Send players new game state
 
             #ifdef PRINT_MAP
                 pthread_mutex_lock(&mutex_lock);
@@ -268,10 +275,6 @@ int main(int argc, char **argv)
             #ifdef PRINT_USERS
                 print_users();
             #endif
-
-            
-            
-            // Send players new game state
         }
     }
 

@@ -1,0 +1,21 @@
+INITIALAZATIONS:
+	init player_array[MAX_PLAYERS]								(empty spaces are filled with fake user "n_bellas"
+	init player_action[MAX_PLAYERS]								(all spaces are initialized to NOTHING)
+	init map													(map is dynamically allocated... SHOULD SWITCH TO STATIC)
+	init socket													(/tmp/dragons_den.sock)
+	init threads
+		- User connections thread
+		- User inactive "garbage collector" thread
+		- User pinger thread
+		- Poll user input thread		    					(first poll and then update player_action[MAX_PLAYER])
+
+	MAIN_LOOP:
+		- check user input 										(while locking player_action[MAX_PLAYERS]
+		- update player_array
+		- update map_state
+		- send users their user struct and map_state	
+		- print map and user_array
+
+	stop threads
+	unlink socket
+	free map
